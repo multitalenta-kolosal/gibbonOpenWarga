@@ -149,7 +149,7 @@ try {
                     $installer,
                     $session,
                     $version,
-                    $_POST
+                    $_POSTs
                 );
 
                 // Redirect to next step
