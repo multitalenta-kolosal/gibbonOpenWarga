@@ -1490,3 +1490,54 @@ function returnProcess($guid, $return, $editLink = null, $customReturns = null)
     $page->return->setEditLink($editLink ?? '');
     $page->return->addReturns($customReturns ?? []);
 }
+
+function returnChildren($connection2, $gibbonPersonID){
+
+    global $session;
+    
+    $students = [];
+
+    $data = ['gibbonPersonID' => $gibbonPersonID];
+    $sql = "SELECT * FROM gibbonFamilyAdult WHERE
+        gibbonPersonID=:gibbonPersonID AND childDataAccess='Y'";
+    $result = $connection2->prepare($sql);
+    $result->execute($data);
+
+    if ($result->rowCount() > 0) {
+        // Get child list
+        while ($row = $result->fetch()) {
+
+            $dataChild = [
+                'gibbonSchoolYearID' => $session->get('gibbonSchoolYearID'),
+                'gibbonFamilyID' => $row['gibbonFamilyID'],
+                'today' => date('Y-m-d'),
+            ];
+            $sqlChild = "SELECT
+                gibbonPerson.gibbonPersonID,image_240, surname,
+                preferredName, dateStart,
+                gibbonYearGroup.nameShort AS yearGroup,
+                gibbonFormGroup.nameShort AS formGroup,
+                gibbonFormGroup.website AS formGroupWebsite,
+                gibbonFormGroup.gibbonFormGroupID
+                FROM gibbonFamilyChild JOIN gibbonPerson ON (gibbonFamilyChild.gibbonPersonID=gibbonPerson.gibbonPersonID)
+                JOIN gibbonStudentEnrolment ON (gibbonPerson.gibbonPersonID=gibbonStudentEnrolment.gibbonPersonID)
+                JOIN gibbonYearGroup ON (gibbonStudentEnrolment.gibbonYearGroupID=gibbonYearGroup.gibbonYearGroupID)
+                JOIN gibbonFormGroup ON (gibbonStudentEnrolment.gibbonFormGroupID=gibbonFormGroup.gibbonFormGroupID)
+                WHERE gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID
+                AND gibbonFamilyID=:gibbonFamilyID
+                AND gibbonPerson.status='Full'
+                AND (dateStart IS NULL OR dateStart<=:today)
+                AND (dateEnd IS NULL OR dateEnd>=:today)
+                ORDER BY surname, preferredName ";
+            $resultChild = $connection2->prepare($sqlChild);
+            $resultChild->execute($dataChild);
+
+            while ($rowChild = $resultChild->fetch()) {
+                $students[] = $rowChild;
+            }
+        }
+    }
+
+    return $students;
+
+}

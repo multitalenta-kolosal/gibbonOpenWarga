@@ -74,8 +74,13 @@ TODO: add template variable details.
 
                 {% if isLoggedIn %}
                 <nav id="header-menu" class="flex-1 justify-between">
-                    {{ include('menu.twig.html') }}
-                </nav>
+                    <nav id="header-menu" class="flex-1 justify-between">
+                        {% if isParent %}
+                            {{ include('menu-parents.twig.html') }}
+                        {% else %}
+                            {{ include('menu.twig.html') }}
+                        {% endif %}
+                    </nav>
                 {% endif %}
 
             {% endblock %}
@@ -98,7 +103,7 @@ TODO: add template variable details.
                     {% if sidebar and (sidebarContents or menuModule) %}
                         <div id="sidebar" class="w-full lg:w-sidebar lg:max-w-xs {{ sidebarPos == 'left' ? 'lg:mr-6' : 'lg:ml-6' }}">
                             {% block sidebar %}
-                            {{ include('navigation.twig.html') }}
+                                {{ include('navigation.twig.html') }}
                             {% endblock sidebar %}
                         </div>
 

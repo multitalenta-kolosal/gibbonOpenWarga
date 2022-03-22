@@ -216,7 +216,7 @@ select[id$="effortValue"] {
 
 .doublescroll-top {
 	overflow-x:auto;
-	margin-left:175px;
+	margin-left:200px;
 }
 
 .doublescroll-top-tablewidth {
@@ -226,7 +226,7 @@ select[id$="effortValue"] {
 .doublescroll-container {
 	overflow-x: auto;
 	overflow-y:visible;
-	margin-left:175px;
+	margin-left:200px;
 }
 
 .doublescroll-container table {
@@ -242,7 +242,7 @@ select[id$="effortValue"] {
 
 .doublescroll-container tr.head th.firstColumn {
 	position:absolute; 
-    width:174px; 
+    width:200px; 
     height: 170px;
     left:1px;
     top:0;
@@ -259,7 +259,7 @@ select[id$="effortValue"] {
 
 .doublescroll-container td.firstColumn {
 	position:absolute; 
-    width:175px; 
+    width:200px; 
     left:1px;
     top:auto;
     padding: 5px 12px 5px !important;
@@ -276,7 +276,7 @@ select[id$="effortValue"] {
 	content: "";
 	position: absolute;
 	top: 0px;
-	left: 175px;
+	left: 200px;
 	background: #666666 none repeat scroll 0% 0%;
 	height: calc(100% );
 	width: 1px;

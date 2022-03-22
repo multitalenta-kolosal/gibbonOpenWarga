@@ -120,7 +120,8 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
                     "<a href='".Url::fromModuleRoute('Students', 'student_view_details')->withQueryParam('gibbonPersonID', $student['gibbonPersonID'])."'>".__('Student Profile').'</a><br/>';
 
                 if (isActionAccessible($guid, $connection2, '/modules/Form Groups/formGroups_details.php')) {
-                    $output .= "<a href='".Url::fromModuleRoute('Form Group', 'formGroups_details')->withQueryParam('gibbonFormGroupID', $student['gibbonFormGroupID'])."'>".__('Form Group').' ('.$student['formGroup'].')</a><br/>';
+                    // FIX FORM GROUPS
+                    $output .= "<a href='".Url::fromModuleRoute('Form Groups', 'formGroups_details')->withQueryParam('gibbonFormGroupID', $student['gibbonFormGroupID'])."'>".__('Form Group').' ('.$student['formGroup'].')</a><br/>';
                 }
                 if ($student['formGroupWebsite'] != '') {
                     $output .= "<a target='_blank' href='".$student['formGroupWebsite']."'>".$student['formGroup'].' '.__('Website').'</a>';
@@ -160,7 +161,8 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
         $classes = false;
 
         if (isActionAccessible($guid, $connection2, '/modules/Planner/planner.php')) {
-            $plannerOutput = "<span style='font-size: 85%; font-weight: bold'>".__('Today\'s Classes')."</span> . <span style='font-size: 70%'><a href='".Url::fromModuleRoute('Planner', 'planner')->withQueryParam('search', $gibbonPersonID)."'>".__('View Planner').'</a></span>';
+            /* HIDDENWARGA view planner */
+            // $plannerOutput = "<span style='font-size: 85%; font-weight: bold'>".__('Today\'s Classes')."</span> . <span style='font-size: 70%'><a href='".Url::fromModuleRoute('Planner', 'planner')->withQueryParam('search', $gibbonPersonID)."'>".__('View Planner').'</a></span>';
 
             $date = date('Y-m-d');
             if (isSchoolOpen($guid, $date, $connection2) == true and isActionAccessible($guid, $connection2, '/modules/Planner/planner.php') and $this->session->get('username') != '') {
@@ -258,9 +260,11 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
                 }
             }
             if ($classes == false) {
-                $plannerOutput .= "<div style='margin-top: 2px' class='warning'>";
-                $plannerOutput .= __('There are no records to display.');
-                $plannerOutput .= '</div>';
+                /* HIDDENWARGA */
+                /* planner output */
+                // $plannerOutput .= "<div style='margin-top: 2px' class='warning'>";
+                // $plannerOutput .= __('There are no records to display.');
+                // $plannerOutput .= '</div>';
             }
         }
 
@@ -281,7 +285,7 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
 
             try {
                 $dataEntry = array('gibbonSchoolYearID' => $this->session->get('gibbonSchoolYearID'), 'gibbonPersonID' => $gibbonPersonID);
-                $sqlEntry = "SELECT *, gibbonMarkbookColumn.comment AS commentOn, gibbonMarkbookColumn.uploadedResponse AS uploadedResponseOn, gibbonMarkbookEntry.comment AS comment FROM gibbonMarkbookEntry JOIN gibbonMarkbookColumn ON (gibbonMarkbookEntry.gibbonMarkbookColumnID=gibbonMarkbookColumn.gibbonMarkbookColumnID) JOIN gibbonCourseClass ON (gibbonMarkbookColumn.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourse.gibbonCourseID=gibbonCourseClass.gibbonCourseID) WHERE gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonPersonIDStudent=:gibbonPersonID AND complete='Y' AND completeDate<='".date('Y-m-d')."' AND viewableParents='Y' ORDER BY completeDate DESC LIMIT 0, 3";
+                $sqlEntry = "SELECT *, gibbonMarkbookColumn.name AS assesName, gibbonMarkbookColumn.comment AS commentOn, gibbonMarkbookColumn.uploadedResponse AS uploadedResponseOn, gibbonMarkbookEntry.comment AS comment FROM gibbonMarkbookEntry JOIN gibbonMarkbookColumn ON (gibbonMarkbookEntry.gibbonMarkbookColumnID=gibbonMarkbookColumn.gibbonMarkbookColumnID) JOIN gibbonCourseClass ON (gibbonMarkbookColumn.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourse.gibbonCourseID=gibbonCourseClass.gibbonCourseID) WHERE gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonPersonIDStudent=:gibbonPersonID AND complete='Y' AND completeDate<='".date('Y-m-d')."' AND viewableParents='Y' ORDER BY completeDate DESC LIMIT 0, 3";
                 $resultEntry = $connection2->prepare($sqlEntry);
                 $resultEntry->execute($dataEntry);
             } catch (\PDOException $e) {
@@ -338,7 +342,10 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
 
                     $gradesOutput .= "<tr class=$rowNum>";
                     $gradesOutput .= '<td>';
-                    $gradesOutput .= "<span title='".htmlPrep($rowEntry['description'])."'>".$rowEntry['name'].'</span><br/>';
+                    $gradesOutput .= "<span title='".htmlPrep($rowEntry['description'])."'>".$rowEntry['assesName'].'</span><br/>';
+                    $gradesOutput .= "<span style='font-size: 90%; font-weight: bold'>";
+                    $gradesOutput .= $rowEntry['name'].'<br/>';
+                    $gradesOutput .= '</span>';
                     $gradesOutput .= "<span style='font-size: 90%; font-style: italic; font-weight: normal'>";
                     $gradesOutput .= __('Marked on').' '.Format::date($rowEntry['completeDate']).'<br/>';
                     $gradesOutput .= '</span>';
@@ -369,7 +376,7 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
                             $resultAttainment->execute($dataAttainment);
                         if ($resultAttainment->rowCount() == 1) {
                             $rowAttainment = $resultAttainment->fetch();
-                            $attainmentExtra = '<br/>'.__($rowAttainment['usage']);
+                            // $attainmentExtra = '<br/>'.__($rowAttainment['usage']); //from lowest to highest
                         }
                         $styleAttainment = "style='font-weight: bold'";
                         if ($rowEntry['attainmentConcern'] == 'Y' and $showParentAttainmentWarning == 'Y') {
@@ -392,7 +399,7 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
                         }
                         $gradesOutput .= '</div>';
                         if ($rowEntry['attainmentValue'] != '') {
-                            $gradesOutput .= "<div class='detailItem' style='font-size: 75%; font-style: italic; margin-top: 2px'><b>".htmlPrep(__($rowEntry['attainmentDescriptor'])).'</b>'.__($attainmentExtra).'</div>';
+                            // $gradesOutput .= "<div class='detailItem' style='font-size: 75%; font-style: italic; margin-top: 2px'><b>".htmlPrep(__($rowEntry['attainmentDescriptor'])).'</b>'.__($attainmentExtra).'</div>';
                         }
                         $gradesOutput .= '</td>';
                     }
@@ -552,21 +559,23 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
         }
 
         //PREPARE UPCOMING DEADLINES
+
+        /* HIDDENWARGA DEADLINES */
         $deadlines = false;
-        if (isActionAccessible($guid, $connection2, '/modules/Planner/planner.php')) {
+        // if (isActionAccessible($guid, $connection2, '/modules/Planner/planner.php')) {
 
-            $homeworkNamePlural = $this->settingGateway->getSettingByScope('Planner', 'homeworkNamePlural');
-            $deadlinesOutput = "<div style='margin-top: 20px'><span style='font-size: 85%; font-weight: bold'>".__('Upcoming Due Dates')."</span> . <span style='font-size: 70%'><a href='".Url::fromModuleRoute('Planner', 'planner_deadlines')->withQueryParam('search', $gibbonPersonID)."'>".__('View {homeworkName}', ['homeworkName' => __($homeworkNamePlural)]).'</a></span></div>';
+        //     $homeworkNamePlural = $this->settingGateway->getSettingByScope('Planner', 'homeworkNamePlural');
+        //     $deadlinesOutput = "<div style='margin-top: 20px'><span style='font-size: 85%; font-weight: bold'>".__('Upcoming Due Dates')."</span> . <span style='font-size: 70%'><a href='".Url::fromModuleRoute('Planner', 'planner_deadlines')->withQueryParam('search', $gibbonPersonID)."'>".__('View {homeworkName}', ['homeworkName' => __($homeworkNamePlural)]).'</a></span></div>';
 
 
-            $plannerGateway = $this->getContainer()->get(PlannerEntryGateway::class);
-            $deadlines = $plannerGateway->selectUpcomingHomeworkByStudent($this->session->get('gibbonSchoolYearID'), $gibbonPersonID, 'viewableParents')->fetchAll();
+        //     $plannerGateway = $this->getContainer()->get(PlannerEntryGateway::class);
+        //     $deadlines = $plannerGateway->selectUpcomingHomeworkByStudent($this->session->get('gibbonSchoolYearID'), $gibbonPersonID, 'viewableParents')->fetchAll();
 
-            $deadlinesOutput .= $this->getContainer()->get('page')->fetchFromTemplate('ui/upcomingDeadlines.twig.html', [
-                'gibbonPersonID' => $gibbonPersonID,
-                'deadlines' => $deadlines,
-            ]);
-        }
+        //     $deadlinesOutput .= $this->getContainer()->get('page')->fetchFromTemplate('ui/upcomingDeadlines.twig.html', [
+        //         'gibbonPersonID' => $gibbonPersonID,
+        //         'deadlines' => $deadlines,
+        //     ]);
+        // }
 
         //PREPARE TIMETABLE
         $timetable = false;
@@ -588,156 +597,157 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
         }
 
         //PREPARE ACTIVITIES
+        /* HIDDENWARGA ACTIVITY */
         $activities = false;
         $activitiesOutput = false;
-        if (!(isActionAccessible($guid, $connection2, '/modules/Activities/activities_view.php'))) {
-            $activitiesOutput .= "<div class='error'>";
-            $activitiesOutput .= __('Your request failed because you do not have access to this action.');
-            $activitiesOutput .= '</div>';
-        } else {
-            $activities = true;
+        // if (!(isActionAccessible($guid, $connection2, '/modules/Activities/activities_view.php'))) {
+        //     $activitiesOutput .= "<div class='error'>";
+        //     $activitiesOutput .= __('Your request failed because you do not have access to this action.');
+        //     $activitiesOutput .= '</div>';
+        // } else {
+        //     $activities = true;
 
-            $activitiesOutput .= "<div class='linkTop'>";
-            $activitiesOutput .= "<a href='".Url::fromModuleRoute('Activities', 'activities_view')->withQueryParam('gibbonPersonID', $gibbonPersonID).
-                "'>".__('View Available Activities').'</a>';
-            $activitiesOutput .= '</div>';
+        //     $activitiesOutput .= "<div class='linkTop'>";
+        //     $activitiesOutput .= "<a href='".Url::fromModuleRoute('Activities', 'activities_view')->withQueryParam('gibbonPersonID', $gibbonPersonID).
+        //         "'>".__('View Available Activities').'</a>';
+        //     $activitiesOutput .= '</div>';
 
-            $dateType = $this->settingGateway->getSettingByScope('Activities', 'dateType');
-            if ($dateType == 'Term') {
-                $maxPerTerm = $this->settingGateway->getSettingByScope('Activities', 'maxPerTerm');
-            }
-            try {
-                $dataYears = array('gibbonPersonID' => $gibbonPersonID);
-                $sqlYears = "SELECT * FROM gibbonStudentEnrolment JOIN gibbonSchoolYear ON (gibbonStudentEnrolment.gibbonSchoolYearID=gibbonSchoolYear.gibbonSchoolYearID) WHERE gibbonSchoolYear.status='Current' AND gibbonPersonID=:gibbonPersonID ORDER BY sequenceNumber DESC";
-                $resultYears = $connection2->prepare($sqlYears);
-                $resultYears->execute($dataYears);
-            } catch (\PDOException $e) {
-                $activitiesOutput .= "<div class='error'>".$e->getMessage().'</div>';
-            }
+        //     $dateType = $this->settingGateway->getSettingByScope('Activities', 'dateType');
+        //     if ($dateType == 'Term') {
+        //         $maxPerTerm = $this->settingGateway->getSettingByScope('Activities', 'maxPerTerm');
+        //     }
+        //     try {
+        //         $dataYears = array('gibbonPersonID' => $gibbonPersonID);
+        //         $sqlYears = "SELECT * FROM gibbonStudentEnrolment JOIN gibbonSchoolYear ON (gibbonStudentEnrolment.gibbonSchoolYearID=gibbonSchoolYear.gibbonSchoolYearID) WHERE gibbonSchoolYear.status='Current' AND gibbonPersonID=:gibbonPersonID ORDER BY sequenceNumber DESC";
+        //         $resultYears = $connection2->prepare($sqlYears);
+        //         $resultYears->execute($dataYears);
+        //     } catch (\PDOException $e) {
+        //         $activitiesOutput .= "<div class='error'>".$e->getMessage().'</div>';
+        //     }
 
-            if ($resultYears->rowCount() < 1) {
-                $activitiesOutput .= "<div class='error'>";
-                $activitiesOutput .= __('There are no records to display.');
-                $activitiesOutput .= '</div>';
-            } else {
-                $yearCount = 0;
-                while ($rowYears = $resultYears->fetch()) {
-                    ++$yearCount;
-                    try {
-                        $data = array('gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $rowYears['gibbonSchoolYearID']);
-                        $sql = "SELECT gibbonActivity.*, gibbonActivityStudent.status, NULL AS role FROM gibbonActivity JOIN gibbonActivityStudent ON (gibbonActivity.gibbonActivityID=gibbonActivityStudent.gibbonActivityID) WHERE gibbonActivityStudent.gibbonPersonID=:gibbonPersonID AND gibbonSchoolYearID=:gibbonSchoolYearID AND active='Y' ORDER BY name";
-                        $result = $connection2->prepare($sql);
-                        $result->execute($data);
-                    } catch (\PDOException $e) {
-                        $activitiesOutput .= "<div class='error'>".$e->getMessage().'</div>';
-                    }
+        //     if ($resultYears->rowCount() < 1) {
+        //         $activitiesOutput .= "<div class='error'>";
+        //         $activitiesOutput .= __('There are no records to display.');
+        //         $activitiesOutput .= '</div>';
+        //     } else {
+        //         $yearCount = 0;
+        //         while ($rowYears = $resultYears->fetch()) {
+        //             ++$yearCount;
+        //             try {
+        //                 $data = array('gibbonPersonID' => $gibbonPersonID, 'gibbonSchoolYearID' => $rowYears['gibbonSchoolYearID']);
+        //                 $sql = "SELECT gibbonActivity.*, gibbonActivityStudent.status, NULL AS role FROM gibbonActivity JOIN gibbonActivityStudent ON (gibbonActivity.gibbonActivityID=gibbonActivityStudent.gibbonActivityID) WHERE gibbonActivityStudent.gibbonPersonID=:gibbonPersonID AND gibbonSchoolYearID=:gibbonSchoolYearID AND active='Y' ORDER BY name";
+        //                 $result = $connection2->prepare($sql);
+        //                 $result->execute($data);
+        //             } catch (\PDOException $e) {
+        //                 $activitiesOutput .= "<div class='error'>".$e->getMessage().'</div>';
+        //             }
 
-                    if ($result->rowCount() < 1) {
-                        $activitiesOutput .= "<div class='error'>";
-                        $activitiesOutput .= __('There are no records to display.');
-                        $activitiesOutput .= '</div>';
-                    } else {
-                        $activitiesOutput .= "<table cellspacing='0' style='width: 100%'>";
-                        $activitiesOutput .= "<tr class='head'>";
-                        $activitiesOutput .= '<th>';
-                        $activitiesOutput .= __('Activity');
-                        $activitiesOutput .= '</th>';
-                        $activitiesOutput .= '<th>';
-                        $activitiesOutput .= __('Type');
-                        $activitiesOutput .= '</th>';
-                        $activitiesOutput .= '<th>';
-                        if ($dateType != 'Date') {
-                            $activitiesOutput .= __('Term');
-                        } else {
-                            $activitiesOutput .= __('Dates');
-                        }
-                        $activitiesOutput .= '</th>';
-                        $activitiesOutput .= '<th>';
-                        $activitiesOutput .= __('Slots');
-                        $activitiesOutput .= '</th>';
-                        $activitiesOutput .= '<th>';
-                        $activitiesOutput .= __('Status');
-                        $activitiesOutput .= '</th>';
-                        $activitiesOutput .= '</tr>';
+        //             if ($result->rowCount() < 1) {
+        //                 $activitiesOutput .= "<div class='error'>";
+        //                 $activitiesOutput .= __('There are no records to display.');
+        //                 $activitiesOutput .= '</div>';
+        //             } else {
+        //                 $activitiesOutput .= "<table cellspacing='0' style='width: 100%'>";
+        //                 $activitiesOutput .= "<tr class='head'>";
+        //                 $activitiesOutput .= '<th>';
+        //                 $activitiesOutput .= __('Activity');
+        //                 $activitiesOutput .= '</th>';
+        //                 $activitiesOutput .= '<th>';
+        //                 $activitiesOutput .= __('Type');
+        //                 $activitiesOutput .= '</th>';
+        //                 $activitiesOutput .= '<th>';
+        //                 if ($dateType != 'Date') {
+        //                     $activitiesOutput .= __('Term');
+        //                 } else {
+        //                     $activitiesOutput .= __('Dates');
+        //                 }
+        //                 $activitiesOutput .= '</th>';
+        //                 $activitiesOutput .= '<th>';
+        //                 $activitiesOutput .= __('Slots');
+        //                 $activitiesOutput .= '</th>';
+        //                 $activitiesOutput .= '<th>';
+        //                 $activitiesOutput .= __('Status');
+        //                 $activitiesOutput .= '</th>';
+        //                 $activitiesOutput .= '</tr>';
 
-                        $count = 0;
-                        $rowNum = 'odd';
-                        while ($row = $result->fetch()) {
-                            if ($count % 2 == 0) {
-                                $rowNum = 'even';
-                            } else {
-                                $rowNum = 'odd';
-                            }
-                            ++$count;
+        //                 $count = 0;
+        //                 $rowNum = 'odd';
+        //                 while ($row = $result->fetch()) {
+        //                     if ($count % 2 == 0) {
+        //                         $rowNum = 'even';
+        //                     } else {
+        //                         $rowNum = 'odd';
+        //                     }
+        //                     ++$count;
 
-                            //COLOR ROW BY STATUS!
-                            $activitiesOutput .= "<tr class=$rowNum>";
-                            $activitiesOutput .= '<td>';
-                            $activitiesOutput .= $row['name'];
-                            $activitiesOutput .= '</td>';
-                            $activitiesOutput .= '<td>';
-                            $activitiesOutput .= trim($row['type']);
-                            $activitiesOutput .= '</td>';
-                            $activitiesOutput .= '<td>';
-                            if ($dateType != 'Date') {
-                                $terms = getTerms($connection2, $this->session->get('gibbonSchoolYearID'), true);
-                                $termList = '';
-                                for ($i = 0; $i < count($terms); $i = $i + 2) {
-                                    if (is_numeric(strpos($row['gibbonSchoolYearTermIDList'], $terms[$i]))) {
-                                        $termList .= $terms[($i + 1)].'<br/>';
-                                    }
-                                }
-                                $activitiesOutput .= $termList;
-                            } else {
-                                if (substr($row['programStart'], 0, 4) == substr($row['programEnd'], 0, 4)) {
-                                    if (substr($row['programStart'], 5, 2) == substr($row['programEnd'], 5, 2)) {
-                                        $activitiesOutput .= date('F', mktime(0, 0, 0, substr($row['programStart'], 5, 2))).' '.substr($row['programStart'], 0, 4);
-                                    } else {
-                                        $activitiesOutput .= date('F', mktime(0, 0, 0, substr($row['programStart'], 5, 2))).' - '.date('F', mktime(0, 0, 0, substr($row['programEnd'], 5, 2))).'<br/>'.substr($row['programStart'], 0, 4);
-                                    }
-                                } else {
-                                    $activitiesOutput .= date('F', mktime(0, 0, 0, substr($row['programStart'], 5, 2))).' '.substr($row['programStart'], 0, 4).' -<br/>'.date('F', mktime(0, 0, 0, substr($row['programEnd'], 5, 2))).' '.substr($row['programEnd'], 0, 4);
-                                }
-                            }
-                            $activitiesOutput .= '</td>';
-                            $activitiesOutput .= '<td>';
-                                try {
-                                    $dataSlots = array('gibbonActivityID' => $row['gibbonActivityID']);
-                                    $sqlSlots = 'SELECT gibbonActivitySlot.*, gibbonDaysOfWeek.name AS dayOfWeek, gibbonSpace.name AS facility FROM gibbonActivitySlot JOIN gibbonDaysOfWeek ON (gibbonActivitySlot.gibbonDaysOfWeekID=gibbonDaysOfWeek.gibbonDaysOfWeekID) LEFT JOIN gibbonSpace ON (gibbonActivitySlot.gibbonSpaceID=gibbonSpace.gibbonSpaceID) WHERE gibbonActivityID=:gibbonActivityID ORDER BY sequenceNumber';
-                                    $resultSlots = $connection2->prepare($sqlSlots);
-                                    $resultSlots->execute($dataSlots);
-                                } catch (\PDOException $e) {
-                                    $activitiesOutput .= "<div class='error'>".$e->getMessage().'</div>';
-                                }
-                                $count = 0;
-                                while ($rowSlots = $resultSlots->fetch()) {
-                                    $activitiesOutput .= '<b>'.$rowSlots['dayOfWeek'].'</b><br/>';
-                                    $activitiesOutput .= '<i>'.__('Time').'</i>: '.substr($rowSlots['timeStart'], 0, 5).' - '.substr($rowSlots['timeEnd'], 0, 5).'<br/>';
-                                    if ($rowSlots['gibbonSpaceID'] != '') {
-                                        $activitiesOutput .= '<i>'.__('Location').'</i>: '.$rowSlots['facility'];
-                                    } else {
-                                        $activitiesOutput .= '<i>'.__('Location').'</i>: '.$rowSlots['locationExternal'];
-                                    }
-                                    ++$count;
-                                }
-                                if ($count == 0) {
-                                    $activitiesOutput .= '<i>'.__('None').'</i>';
-                                }
-                            $activitiesOutput .= '</td>';
-                            $activitiesOutput .= '<td>';
-                            if ($row['status'] != '') {
-                                $activitiesOutput .= $row['status'];
-                            } else {
-                                $activitiesOutput .= '<i>'.__('NA').'</i>';
-                            }
-                            $activitiesOutput .= '</td>';
-                            $activitiesOutput .= '</tr>';
-                        }
-                        $activitiesOutput .= '</table>';
-                    }
-                }
-            }
-        }
+        //                     //COLOR ROW BY STATUS!
+        //                     $activitiesOutput .= "<tr class=$rowNum>";
+        //                     $activitiesOutput .= '<td>';
+        //                     $activitiesOutput .= $row['name'];
+        //                     $activitiesOutput .= '</td>';
+        //                     $activitiesOutput .= '<td>';
+        //                     $activitiesOutput .= trim($row['type']);
+        //                     $activitiesOutput .= '</td>';
+        //                     $activitiesOutput .= '<td>';
+        //                     if ($dateType != 'Date') {
+        //                         $terms = getTerms($connection2, $this->session->get('gibbonSchoolYearID'), true);
+        //                         $termList = '';
+        //                         for ($i = 0; $i < count($terms); $i = $i + 2) {
+        //                             if (is_numeric(strpos($row['gibbonSchoolYearTermIDList'], $terms[$i]))) {
+        //                                 $termList .= $terms[($i + 1)].'<br/>';
+        //                             }
+        //                         }
+        //                         $activitiesOutput .= $termList;
+        //                     } else {
+        //                         if (substr($row['programStart'], 0, 4) == substr($row['programEnd'], 0, 4)) {
+        //                             if (substr($row['programStart'], 5, 2) == substr($row['programEnd'], 5, 2)) {
+        //                                 $activitiesOutput .= date('F', mktime(0, 0, 0, substr($row['programStart'], 5, 2))).' '.substr($row['programStart'], 0, 4);
+        //                             } else {
+        //                                 $activitiesOutput .= date('F', mktime(0, 0, 0, substr($row['programStart'], 5, 2))).' - '.date('F', mktime(0, 0, 0, substr($row['programEnd'], 5, 2))).'<br/>'.substr($row['programStart'], 0, 4);
+        //                             }
+        //                         } else {
+        //                             $activitiesOutput .= date('F', mktime(0, 0, 0, substr($row['programStart'], 5, 2))).' '.substr($row['programStart'], 0, 4).' -<br/>'.date('F', mktime(0, 0, 0, substr($row['programEnd'], 5, 2))).' '.substr($row['programEnd'], 0, 4);
+        //                         }
+        //                     }
+        //                     $activitiesOutput .= '</td>';
+        //                     $activitiesOutput .= '<td>';
+        //                         try {
+        //                             $dataSlots = array('gibbonActivityID' => $row['gibbonActivityID']);
+        //                             $sqlSlots = 'SELECT gibbonActivitySlot.*, gibbonDaysOfWeek.name AS dayOfWeek, gibbonSpace.name AS facility FROM gibbonActivitySlot JOIN gibbonDaysOfWeek ON (gibbonActivitySlot.gibbonDaysOfWeekID=gibbonDaysOfWeek.gibbonDaysOfWeekID) LEFT JOIN gibbonSpace ON (gibbonActivitySlot.gibbonSpaceID=gibbonSpace.gibbonSpaceID) WHERE gibbonActivityID=:gibbonActivityID ORDER BY sequenceNumber';
+        //                             $resultSlots = $connection2->prepare($sqlSlots);
+        //                             $resultSlots->execute($dataSlots);
+        //                         } catch (\PDOException $e) {
+        //                             $activitiesOutput .= "<div class='error'>".$e->getMessage().'</div>';
+        //                         }
+        //                         $count = 0;
+        //                         while ($rowSlots = $resultSlots->fetch()) {
+        //                             $activitiesOutput .= '<b>'.$rowSlots['dayOfWeek'].'</b><br/>';
+        //                             $activitiesOutput .= '<i>'.__('Time').'</i>: '.substr($rowSlots['timeStart'], 0, 5).' - '.substr($rowSlots['timeEnd'], 0, 5).'<br/>';
+        //                             if ($rowSlots['gibbonSpaceID'] != '') {
+        //                                 $activitiesOutput .= '<i>'.__('Location').'</i>: '.$rowSlots['facility'];
+        //                             } else {
+        //                                 $activitiesOutput .= '<i>'.__('Location').'</i>: '.$rowSlots['locationExternal'];
+        //                             }
+        //                             ++$count;
+        //                         }
+        //                         if ($count == 0) {
+        //                             $activitiesOutput .= '<i>'.__('None').'</i>';
+        //                         }
+        //                     $activitiesOutput .= '</td>';
+        //                     $activitiesOutput .= '<td>';
+        //                     if ($row['status'] != '') {
+        //                         $activitiesOutput .= $row['status'];
+        //                     } else {
+        //                         $activitiesOutput .= '<i>'.__('NA').'</i>';
+        //                     }
+        //                     $activitiesOutput .= '</td>';
+        //                     $activitiesOutput .= '</tr>';
+        //                 }
+        //                 $activitiesOutput .= '</table>';
+        //             }
+        //         }
+        //     }
+        // }
 
         //GET HOOKS INTO DASHBOARD
         $hooks = array();
@@ -806,11 +816,12 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
             $return .= '</ul>';
 
             $tabCountExtraReset = 0;
+            /* HIDDENWARGA PLANNER */
             if ($classes != false or $grades != false or $deadlines != false) {
                 $return .= "<div id='tabs".$tabCountExtraReset."' class='overflow-x-auto'>";
-                $return .= $plannerOutput;
+                // $return .= $plannerOutput;
                 $return .= $gradesOutput;
-                $return .= $deadlinesOutput;
+                // $return .= $deadlinesOutput;
                 $return .= '</div>';
                 $tabCountExtraReset++;
             }
