@@ -139,7 +139,7 @@ require_once __DIR__ . '/src/MarkbookColumn.php';
     $search = $_GET['search'] ?? '';
     $gibbonSchoolYearTermID = $_GET['gibbonSchoolYearTermID'] ?? $gibbon->session->get('markbookTerm') ?? '';
     $columnFilter = $_GET['markbookFilter'] ?? $gibbon->session->get('markbookFilter') ?? '';
-    $studentOrderBy = $_GET['markbookOrderBy'] ?? $gibbon->session->get('markbookOrderBy') ?? 'surname';
+    $studentOrderBy = $_GET['markbookOrderBy'] ?? $gibbon->session->get('markbookOrderBy') ?? 'rollOrder';
 
     //Get the current page number
     $pageNum = $_GET['page'] ?? $gibbon->session->get('markbookPage') ?? 0;

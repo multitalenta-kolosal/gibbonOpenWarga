@@ -45,6 +45,7 @@ $page = $container->get('page');
 $session = $container->get('session');
 
 $isLoggedIn = $session->has('username') && $session->has('gibbonRoleIDCurrent');
+$isParent = false;
 
 $settingGateway = $container->get(SettingGateway::class);
 
@@ -538,6 +539,7 @@ if ($isLoggedIn && !$upgrade) {
 
 $page->addData([
     'isLoggedIn'        => $isLoggedIn,
+    'gibbonPersonID'    => $session->get('gibbonPersonID'),
     'organisationLogo'  => $session->get('organisationLogo'),
     'organisationName'  => $session->get('organisationName'),
     'cacheString'       => $session->get('cacheString'),
@@ -659,6 +661,7 @@ if (!$session->has('address')) {
             default:
                 $page->write('<div class="error">'.__('Your current role type cannot be determined.').'</div>');
         }
+
     }
 } else {
     $address = trim($page->getAddress(), ' /');
@@ -694,6 +697,15 @@ if (!$session->has('address')) {
  * Add this after loading page content, so it can update based on page changes.
  */
 if ($isLoggedIn) {
+    $roleCategory = getRoleCategory($session->get('gibbonRoleIDCurrent'), $connection2);
+        
+    if ($roleCategory == 'Parent') {
+        $isParent = true;
+        $page->addData([
+            'isParent'          => $isParent,
+        ]);
+    }
+
     $header = $container->get(Gibbon\UI\Components\Header::class);
 
     $page->addData([

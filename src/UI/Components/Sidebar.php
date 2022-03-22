@@ -670,37 +670,38 @@ class Sidebar implements OutputableInterface, ContainerAwareInterface
 
         $output = false;
 
-        if ($this->category == 'Parent') {
-            $output .= '<div class="column-no-break">';
-            $output .= "<h2 style='margin-bottom: 10px'>";
-            $output .= 'Profile Photo';
-            $output .= '</h2>';
+        /* HIDDENWARGA PARENT PHOTO */
+        // if ($this->category == 'Parent') {
+        //     $output .= '<div class="column-no-break">';
+        //     $output .= "<h2 style='margin-bottom: 10px'>";
+        //     $output .= 'Profile Photo';
+        //     $output .= '</h2>';
 
-            if ($this->session->get('image_240') == '') { //No photo, so show uploader
-                $output .= '<p>';
-                $output .= __('Please upload a passport photo to use as a profile picture.').' '.__('240px by 320px').'.';
-                $output .= '</p>';
+        //     if ($this->session->get('image_240') == '') { //No photo, so show uploader
+        //         $output .= '<p>';
+        //         $output .= __('Please upload a passport photo to use as a profile picture.').' '.__('240px by 320px').'.';
+        //         $output .= '</p>';
 
-                $form = Form::create('photoUpload', Url::fromHandlerRoute('index_parentPhotoUploadProcess.php')->withQueryParam('gibbonPersonID', $this->session->get('gibbonPersonID')));
-                $form->addHiddenValue('address', $this->session->get('address'));
-                $form->setClass('smallIntBorder w-full');
+        //         $form = Form::create('photoUpload', Url::fromHandlerRoute('index_parentPhotoUploadProcess.php')->withQueryParam('gibbonPersonID', $this->session->get('gibbonPersonID')));
+        //         $form->addHiddenValue('address', $this->session->get('address'));
+        //         $form->setClass('smallIntBorder w-full');
 
-                $row = $form->addRow();
-                    $row->addFileUpload('file1')->accepts('.jpg,.jpeg,.gif,.png')->setMaxUpload(false)->setClass('fullWidth');
-                    $row->addSubmit(__('Go'));
+        //         $row = $form->addRow();
+        //             $row->addFileUpload('file1')->accepts('.jpg,.jpeg,.gif,.png')->setMaxUpload(false)->setClass('fullWidth');
+        //             $row->addSubmit(__('Go'));
 
-                $output .= $form->getOutput();
+        //         $output .= $form->getOutput();
 
-            } else { //Photo, so show image and removal link
-                $output .= '<p>';
-                $output .= Format::userPhoto($this->session->get('image_240'), 240);
-                $output .= "<div style='margin-left: 220px; margin-top: -50px'>";
-                $output .= "<a href='".Url::fromHandlerRoute('index_parentPhotoDeleteProcess.php')->withQueryParam('gibbonPersonID', $this->session->get('gibbonPersonID'))."' onclick='return confirm(\"Are you sure you want to delete this record? Unsaved changes will be lost.\")'><img style='margin-bottom: -8px' id='image_240_delete' title='".__('Delete')."' src='./themes/".$this->session->get('gibbonThemeName')."/img/garbage.png'/></a><br/><br/>";
-                $output .= '</div>';
-                $output .= '</p>';
-            }
-            $output .= '</div>';
-        }
+        //     } else { //Photo, so show image and removal link
+        //         $output .= '<p>';
+        //         $output .= Format::userPhoto($this->session->get('image_240'), 240);
+        //         $output .= "<div style='margin-left: 220px; margin-top: -50px'>";
+        //         $output .= "<a href='".Url::fromHandlerRoute('index_parentPhotoDeleteProcess.php')->withQueryParam('gibbonPersonID', $this->session->get('gibbonPersonID'))."' onclick='return confirm(\"Are you sure you want to delete this record? Unsaved changes will be lost.\")'><img style='margin-bottom: -8px' id='image_240_delete' title='".__('Delete')."' src='./themes/".$this->session->get('gibbonThemeName')."/img/garbage.png'/></a><br/><br/>";
+        //         $output .= '</div>';
+        //         $output .= '</p>';
+        //     }
+        //     $output .= '</div>';
+        // }
 
         return $output;
     }

@@ -116,7 +116,7 @@ function classChooser($guid, $pdo, $gibbonCourseClassID)
     $result = $pdo->executeQuery($data, $sql);
     $rollOrderCount = ($result->rowCount() > 0)? $result->fetchColumn(0) : 0;
     if ($rollOrderCount > 0) {
-        $selectOrderBy = ($session->has('markbookOrderBy'))? $session->get('markbookOrderBy') : 'surname';
+        $selectOrderBy = ($session->has('markbookOrderBy'))? $session->get('markbookOrderBy') : 'rollOrder';
         $selectOrderBy = (isset($_GET['markbookOrderBy']))? $_GET['markbookOrderBy'] : $selectOrderBy;
 
         $orderBy = array(
