@@ -596,6 +596,27 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
             }
         }
 
+        //PREPARING ATTENDANCE
+        $attendance = false;
+        $attendanceOutput = '';
+        if (isActionAccessible($guid, $connection2, '/modules/Attendance/report_studentHistory.php')) {
+            include_once $this->session->get('absolutePath').'/modules/Attendance/moduleFunctions.php';
+
+            $date = date('Y-m-d');
+            if (isset($_POST['ttDate'])) {
+                $date = Format::dateConvert($_POST['ttDate']);
+            }
+            $params = '';
+            if ($classes != false or $grades != false or $deadlines != false) {
+                $params = '&tab=1';
+            }
+            $attendanceOutputTemp = renderAttendanceNow($guid, $connection2, $gibbonPersonID, null);
+            if ($attendanceOutputTemp != false) {
+                $attendance = true;
+                $attendanceOutput .= $attendanceOutputTemp;
+            }
+        }
+
         //PREPARE ACTIVITIES
         /* HIDDENWARGA ACTIVITY */
         $activities = false;
@@ -779,7 +800,7 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
             }
         }
 
-        if ($classes == false and $grades == false and $deadlines == false and $timetable == false and $activities == false and count($hooks) < 1) {
+        if ($classes == false and $grades == false and $deadlines == false and $timetable == false and $attendance == false and $activities == false and count($hooks) < 1) {
             $return .= "<div class='warning'>";
             $return .= __('There are no records to display.');
             $return .= '</div>';
@@ -800,6 +821,12 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
                 $return .= "<li><a href='#tabs".$tabCountExtraReset."'>".__('Timetable').'</a></li>';
                 $tabCountExtraReset++;
                 if ($parentDashboardDefaultTab == 'Timetable')
+                    $parentDashboardDefaultTabCount = $tabCountExtraReset;
+            }
+            if ($attendance != false) {
+                $return .= "<li><a href='#tabs".$tabCountExtraReset."'>".__('Attendance').'</a></li>';
+                $tabCountExtraReset++;
+                if ($parentDashboardDefaultTab == 'Attendance')
                     $parentDashboardDefaultTabCount = $tabCountExtraReset;
             }
             if ($activities != false) {
@@ -828,6 +855,12 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
             if ($timetable != false) {
                 $return .= "<div id='tabs".$tabCountExtraReset."' class='overflow-x-auto'>";
                 $return .= $timetableOutput;
+                $return .= '</div>';
+                $tabCountExtraReset++;
+            }
+            if ($attendance != false) {
+                $return .= "<div id='tabs".$tabCountExtraReset."' class='overflow-x-auto'>";
+                $return .= $attendanceOutput;
                 $return .= '</div>';
                 $tabCountExtraReset++;
             }

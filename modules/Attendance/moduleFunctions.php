@@ -17,9 +17,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+use Gibbon\Http\Url;
 use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Services\Format;
 use Gibbon\Module\Attendance\AttendanceView;
+use Gibbon\Domain\Attendance\AttendanceLogPersonGateway;
 
 //Get's a count of absent days for specified student between specified dates (YYYY-MM-DD, inclusive). Return of FALSE means there was an error, or no data
 function getAbsenceCount($guid, $gibbonPersonID, $connection2, $dateStart, $dateEnd, $gibbonCourseClassID = 0)
@@ -91,6 +93,83 @@ function getAbsenceCount($guid, $gibbonPersonID, $connection2, $dateStart, $date
         }
 
         return $absentCount;
+    }
+}
+
+//get today attendance date
+function renderAttendanceNow($guid, $connection2, $gibbonPersonID, $title = '')
+{
+    global $session, $container;
+
+    $zCount = 0;
+    $output = "<div style='margin-top: 20px'><span style='font-size: 85%; font-weight: bold'>".__('Today Attendance')."</span> . <span style='font-size: 70%'><a href='" . Url::fromModuleRoute('Attendance', 'report_studentHistory')->withQueryParam('gibbonPersonID', $gibbonPersonID) . "'>".__('View Attendance History').'</a></span></div>';
+
+    $data = array('gibbonPersonID' => $gibbonPersonID);
+        $sql = 'SELECT * FROM gibbonPerson WHERE gibbonPerson.gibbonPersonID=:gibbonPersonID ORDER BY surname, preferredName';
+        $result = $connection2->prepare($sql);
+        $result->execute($data);
+    if ($result->rowCount() != 1) {
+        $output .= "<div class='error'>";
+        $output .= __('The specified person record does not exist.');
+        $output .= '</div>';
+    } else {
+        
+        $row = $result->fetch();
+
+        // Get Logs
+        global $session, $container;
+        
+        $attendanceLog = $container->get(AttendanceLogPersonGateway::class);
+        $settingGateway = $container->get(SettingGateway::class);
+
+        $today = date('Y-m-d');
+        $gibbonSchoolYearID = $session->get('gibbonSchoolYearID');
+        $crossFillClasses = $settingGateway->getSettingByScope('Attendance', 'crossFillClasses');
+
+        $logs = $attendanceLog
+            ->selectAttendanceLogsByPersonAndDate($gibbonPersonID, $today, $crossFillClasses)
+            ->fetchGrouped();
+        
+        $logValueArray = reset($logs);
+        if($logValueArray){
+            $logValue = reset($logValueArray);
+            
+            //proccessing the time
+            $rawTime  = strtotime($logValue["timestampTaken"]);
+            $takenAt = $newformat = date('d-M-Y, H:i',$rawTime);
+        }else{
+            $logValue = NULL;
+            $takenAt = "--";
+        }
+
+        $attendanceColor = getColorClass(key($logs));
+
+        $output .= "<div style='margin-top: 2px' class='".$attendanceColor."'>";
+        $output .= "<span style='font-size: 200%; font-weight: bold'>";
+        $output .= key($logs) ?? "No Data";
+        $output .= '</span>';
+        $output .= '</div>';
+        $output .= "<span style='font-size: 90%; font-weight: normal'>";
+        $output .= "Taken at: ".$takenAt;
+        $output .= '</span>';
+    }
+
+    return $output;
+}
+
+//get color for attendance
+function getColorClass($attendanceType){
+
+    $lowercaseAttendance = strtolower($attendanceType);
+    
+    if(str_contains($lowercaseAttendance,'present') ){
+        return 'success';
+    }else if(str_contains($lowercaseAttendance,'left') ){
+        return 'warning';
+    }else if(str_contains($lowercaseAttendance,'absent') ){
+        return 'error';
+    }else{
+        return 'alert';
     }
 }
 
