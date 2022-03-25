@@ -149,9 +149,35 @@ function renderAttendanceNow($guid, $connection2, $gibbonPersonID, $title = '')
         $output .= key($logs) ?? "No Data";
         $output .= '</span>';
         $output .= '</div>';
-        $output .= "<span style='font-size: 90%; font-weight: normal'>";
-        $output .= "Taken at: ".$takenAt;
-        $output .= '</span>';
+        $output .= "<div style='font-size: 90%; font-weight: normal'>";
+
+        $output .= "<table cellspacing='0' style='margin: 3px 0px; width: 50%'>";
+        $output .= "<tr class='odd'>";
+        $output .= "<td>";
+        $output .= "<span style='font-size: 90%; font-weight: bold'>Reason</span>";
+        $output .= "</td>";
+        $output .= "<td>";
+        $output .= ($logValue["reason"] ?? "--");
+        $output .= "</td>";
+        $output .= '</tr>';
+        $output .= "<tr class='odd'>";
+        $output .= "<td>";
+        $output .= "<span style='font-size: 90%; font-weight: bold'>Notes</span>";
+        $output .= "</td>";
+        $output .= "<td>";
+        $output .= ($logValue["comment"] ?? "--");
+        $output .= "</td>";
+        $output .= '</tr>';
+        $output .= "<tr class='odd'>";
+        $output .= "<td>";
+        $output .= "<span style='font-size: 90%; font-weight: bold'>Taken at</span>";
+        $output .= "</td>";
+        $output .= "<td>";
+        $output .= $takenAt;
+        $output .= "</td>";
+        $output .= '</tr>';
+        $output .= '</table>';
+        
     }
 
     return $output;
