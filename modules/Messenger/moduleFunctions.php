@@ -615,12 +615,12 @@ function getMessages($guid, $connection2, $mode = '', $date = '')
     if ($mode == 'result') {
         $resultReturn = array();
         $resultReturn[0] = $dataPosts;
-        $resultReturn[1] = $sqlPosts.' ORDER BY messageWallPin DESC, subject, gibbonMessengerID, source';
+        $resultReturn[1] = $sqlPosts.' ORDER BY messageWallPin DESC, timestamp DESC, subject, gibbonMessengerID, source';
 
         return serialize($resultReturn);
     } elseif ($mode == 'array') {
         try {
-            $sqlPosts = $sqlPosts.' ORDER BY messageWallPin DESC, subject, gibbonMessengerID, source';
+            $sqlPosts = $sqlPosts.' ORDER BY messageWallPin DESC, timestamp DESC, subject, gibbonMessengerID, source';
             $resultPosts = $connection2->prepare($sqlPosts);
             $resultPosts->execute($dataPosts);
         } catch (PDOException $e) {
@@ -641,7 +641,7 @@ function getMessages($guid, $connection2, $mode = '', $date = '')
     } else {
         $count = 0;
         try {
-            $sqlPosts = $sqlPosts.' ORDER BY messageWallPin DESC, subject, gibbonMessengerID, source';
+            $sqlPosts = $sqlPosts.' ORDER BY messageWallPin DESC, timestamp DESC, subject, gibbonMessengerID, source';
             $resultPosts = $connection2->prepare($sqlPosts);
             $resultPosts->execute($dataPosts);
         } catch (PDOException $e) {
@@ -667,6 +667,7 @@ function getMessages($guid, $connection2, $mode = '', $date = '')
                     $output[$count]['gibbonMessengerID'] = $rowPosts['gibbonMessengerID'];
                     $output[$count]['gibbonPersonID'] = $rowPosts['gibbonPersonID'];
                     $output[$count]['messageWallPin'] = $rowPosts['messageWallPin'];
+                    $output[$count]['timestamp'] = $rowPosts['timestamp'];
 
                     ++$count;
                     $last = $rowPosts['gibbonMessengerID'];
@@ -711,6 +712,10 @@ function getMessages($guid, $connection2, $mode = '', $date = '')
                     $output = '<h3 style="margin-top: 3px">';
                     $output .= $message['subject'];
                     $output .= '</h3>';
+                    $output .= '<div style="font-style: italic;font-size: 100%">';
+                    $output .= date("d-M-Y, H:i", strtotime($message['timestamp']));
+                    $output .= '</div>';
+                    $output .= '</div>';
 
                     $output .= '</p>';
                     $output .= $message['details'];
