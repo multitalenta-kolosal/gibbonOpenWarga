@@ -338,7 +338,7 @@ if ($result->rowCount() < 1) {
                                 }
                                 echo '</div>';
                                 if ($rowEntry['attainmentValue'] != '') {
-                                    echo "<div class='detailItem' style='font-size: 75%; font-style: italic; margin-top: 2px'><b>".htmlPrep(__($rowEntry['attainmentDescriptor'])).'</b>'.__($attainmentExtra).'</div>';
+                                    // echo "<div class='detailItem' style='font-size: 75%; font-style: italic; margin-top: 2px'><b>".htmlPrep(__($rowEntry['attainmentDescriptor'])).'</b>'.__($attainmentExtra).'</div>';
                                 }
                                 echo '</td>';
                             }

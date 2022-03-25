@@ -447,7 +447,8 @@ class MarkbookView
         }
 
         $DAS = $this->getDefaultAssessmentScale();
-        return "<span title='" . number_format(round($average, 2), 2) . "'>" . round($average, 0) . $DAS['percent'] . "</span>";
+        //remove das percent
+        return "<span title='" . number_format(round($average, 2), 2) . "'>" . round($average, 0) . "</span>";
     }
 
     /**

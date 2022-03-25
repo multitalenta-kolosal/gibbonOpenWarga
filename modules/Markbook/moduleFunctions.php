@@ -268,7 +268,7 @@ function renderStudentCumulativeMarks($gibbon, $pdo, $gibbonPersonID, $gibbonCou
                 echo '<b>'.__('Cumulative Average').'</b>';
             echo '</td>';
             echo '<td style="padding: 10px !important; text-align: center;">';
-                echo round( $cumulativeMark ).'%';
+                echo round( $cumulativeMark );
             echo '</td>';
             echo '<td colspan="3" class="dull"></td>';
          echo '</tr>';
