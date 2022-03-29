@@ -580,19 +580,27 @@ class ParentDashboard implements OutputableInterface, ContainerAwareInterface
         //PREPARE TIMETABLE
         $timetable = false;
         $timetableOutput = '';
-        if (isActionAccessible($guid, $connection2, '/modules/Timetable/tt_view.php')) {
-            $date = date('Y-m-d');
-            if (isset($_POST['ttDate'])) {
-                $date = Format::dateConvert($_POST['ttDate']);
-            }
-            $params = '';
-            if ($classes != false or $grades != false or $deadlines != false) {
-                $params = '&tab=1';
-            }
-            $timetableOutputTemp = renderTT($guid, $connection2, $gibbonPersonID, null, null, Format::timestamp($date), '', $params, 'narrow');
-            if ($timetableOutputTemp != false) {
-                $timetable = true;
-                $timetableOutput .= $timetableOutputTemp;
+        if($this->session->get('AllSchoolSchedule')){
+            $globalSchedule = $this->session->get('absoluteURL').'/'.$this->session->get('AllSchoolSchedule');
+            $timetable = true;
+            $timetableOutput = "<div style='align-text: left; padding-bottom: 10px; font-style:italic; font-size: 70%'>Tekan Gambar untuk Memperbesar</div>";
+            $timetableOutput .= "<a href=".$globalSchedule."><img style='height: 100%; width: 100%; object-fit: contain' src=".$globalSchedule." ></img></a>";
+            $timetableOutput .= "<a href=".$globalSchedule." style='display: inline; text-decoration: none;' download='Jadwal Pelajaran'><i class='fa-solid fa-download'></i><span style='align-text: left; padding-top: 10px; font-size: 80%'> Download</span></a>";
+        }else{
+            if (isActionAccessible($guid, $connection2, '/modules/Timetable/tt_view.php')) {
+                $date = date('Y-m-d');
+                if (isset($_POST['ttDate'])) {
+                    $date = Format::dateConvert($_POST['ttDate']);
+                }
+                $params = '';
+                if ($classes != false or $grades != false or $deadlines != false) {
+                    $params = '&tab=1';
+                }
+                $timetableOutputTemp = renderTT($guid, $connection2, $gibbonPersonID, null, null, Format::timestamp($date), '', $params, 'narrow');
+                if ($timetableOutputTemp != false) {
+                    $timetable = true;
+                    $timetableOutput .= $timetableOutputTemp;
+                }
             }
         }
 

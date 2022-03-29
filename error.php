@@ -30,7 +30,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         <meta name="robots" content="noindex"/>
         <meta name="Referrer‐Policy" value="no‐referrer | same‐origin"/>
         <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico"/>
-
+        
+        <script src="https://kit.fontawesome.com/45014aae1e.js" crossorigin="anonymous"></script>
         <link rel="stylesheet" href="./themes/Default/css/main.css" type="text/css" media="all">
         <link rel="stylesheet" href="./resources/assets/css/core.min.css" type="text/css" media="all">
         <link rel="stylesheet" href="./resources/assets/css/theme.min.css" type="text/css" media="all">

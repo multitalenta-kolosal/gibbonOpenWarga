@@ -50,6 +50,7 @@ if (isActionAccessible($guid, $connection2, '/modules/System Admin/systemSetting
             'organisationNameShort' => 'required',
             'organisationEmail' => 'required',
             'organisationLogo' => 'requiredFile',
+            'AllSchoolSchedule' => '',
             'organisationAdministrator' => 'required',
             'organisationDBA' => 'required',
             'organisationHR' => 'required',
@@ -108,6 +109,20 @@ if (isActionAccessible($guid, $connection2, '/modules/System Admin/systemSetting
         $_POST['organisationLogo'] = $fileUploader->uploadFromPost($file, 'logo');
 
         if (empty($_POST['organisationLogo'])) {
+            $partialFail = true;
+        }
+    }
+    
+    //MAKE OPTIONAL FOR SCHEDULE
+
+    // Move attached logo file, if there is one
+    if (!empty($_FILES['AllSchoolScheduleFile']['tmp_name'])) {
+        $file = $_FILES['AllSchoolScheduleFile'] ?? null;
+
+        // Upload the file, return the /uploads relative path
+        $_POST['AllSchoolSchedule'] = $fileUploader->uploadFromPost($file, 'AllSchoolSchedule');
+
+        if (empty($_POST['AllSchoolSchedule'])) {
             $partialFail = true;
         }
     }

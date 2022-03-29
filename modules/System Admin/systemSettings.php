@@ -115,6 +115,13 @@ if (isActionAccessible($guid, $connection2, '/modules/System Admin/systemSetting
             ->accepts('.jpg,.jpeg,.gif,.png')
             ->setAttachment('organisationLogo', $gibbon->session->get('absoluteURL'), $setting['value'])->required();
 
+    $setting = $settingGateway->getSettingByScope('System', 'AllSchoolSchedule', true);
+    $row = $form->addRow();
+        $row->addLabel($setting['name'].'File', __($setting['nameDisplay']))->description(__($setting['description']));
+        $row->addFileUpload($setting['name'].'File')
+            ->accepts('.jpg,.jpeg,.gif,.png')
+            ->setAttachment('AllSchoolSchedule', $gibbon->session->get('absoluteURL'), $setting['value']);
+        
     $setting = $settingGateway->getSettingByScope('System', 'organisationAdministrator', true);
     $row = $form->addRow();
         $row->addLabel($setting['name'], __($setting['nameDisplay']))->description(__($setting['description']));

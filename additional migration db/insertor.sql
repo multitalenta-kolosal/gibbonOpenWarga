@@ -1,0 +1,2 @@
+INSERT IGNORE INTO `gibbonSetting` (`gibbonSettingID`, `scope`, `name`, `nameDisplay`, `description`, `value`) VALUES
+(80001, 'System', 'AllSchoolSchedule', 'AllSchoolSchedule', 'Global Schedule to reduce timetable usage', '');
