@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+use Gibbon\Contracts\Comms\Whatsapp;
 use Gibbon\Contracts\Comms\SMS;
 use Gibbon\Domain\System\SettingGateway;
 

@@ -148,6 +148,27 @@ else {
 						$col->addDate('date3')->setValue(Format::date($values['messageWall_date3']));
 				}
 
+				//Delivery by Whatsapp
+				if (true) { // temporary only until action for whatsapp is needed
+					$settingGateway = $container->get(SettingGateway::class);
+					$whatsappApiKey = $settingGateway->getSettingByScope("System", "whatsappApiKey" ) ;
+					if ($whatsappApiKey == "") {
+						$row = $form->addRow()->addClass('whatsapp');
+							$row->addLabel('whatsapp', __('whatsapp'))->description(__('Deliver this message to user\'s Whatsapp?'));
+							$row->addAlert(sprintf(__('Whatsapp NOT CONFIGURED. Please contact %1$s for help.'), "<a href='mailto:" . $session->get('organisationAdministratorEmail') . "'>" . $session->get('organisationAdministratorName') . "</a>"), 'message');
+					}
+					else {
+						$row = $form->addRow();
+							$row->addLabel('whatsapp', __('whatsapp'))->description(__('Deliver this message to user\'s Whatsapp?'));
+							if ($values["whatsapp"]=="Y") {
+								$row->addContent("<img title='" . __('Sent by email.') . "' src='./themes/" . $session->get('gibbonThemeName') . "/img/iconTick.png'/>")->addClass('right');
+							}
+							else {
+								$row->addContent("<img title='" . __('Not sent by email.') . "' src='./themes/" . $session->get('gibbonThemeName') . "/img/iconCross.png'/>")->addClass('right') ;
+							}
+					}
+				}
+
 				//Delivery by SMS
 				if (isActionAccessible($guid, $connection2, "/modules/Messenger/messenger_post.php", "New Message_bySMS")) {
                     $settingGateway = $container->get(SettingGateway::class);

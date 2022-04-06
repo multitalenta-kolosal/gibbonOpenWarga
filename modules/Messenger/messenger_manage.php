@@ -220,6 +220,12 @@ if (isActionAccessible($guid, $connection2, '/modules/Messenger/messenger_manage
             : '<img title="'.__('Not sent by email.').'" src="'.$session->get('absoluteURL').'/themes/'.$session->get('gibbonThemeName').'/img/iconCross.png"/>';
     });
 
+    $table->addColumn('whatsapp','<i class="fa-brands fa-whatsapp fa-lg"></i>')->format(function ($values) use (&$session) {
+        return $values['whatsapp'] == 'Y'
+            ? '<img title="'.__('Sent by whatsapp.').'" src="'.$session->get('absoluteURL').'/themes/'.$session->get('gibbonThemeName').'/img/iconTick.png"/>'
+            : '<img title="'.__('Not sent by whatsapp.').'" src="'.$session->get('absoluteURL').'/themes/'.$session->get('gibbonThemeName').'/img/iconCross.png"/>';
+    });
+
     $table->addColumn('messageWall', __('Wall'))->format(function ($values) use (&$session) {
         return $values['messageWall'] == 'Y'
             ? '<img title="'.__('Sent by message wall.').'" src="'.$session->get('absoluteURL').'/themes/'.$session->get('gibbonThemeName').'/img/iconTick.png"/>'

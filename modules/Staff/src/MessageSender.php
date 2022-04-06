@@ -20,6 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 namespace Gibbon\Module\Staff;
 
 use Gibbon\Contracts\Comms\Mailer as MailerContract;
+use Gibbon\Contracts\Comms\Whatsapp as WhatsappContract;
 use Gibbon\Contracts\Comms\SMS as SMSContract;
 use Gibbon\Domain\System\NotificationGateway;
 use Gibbon\Domain\System\SettingGateway;
@@ -40,7 +41,7 @@ class MessageSender
     protected $sms;
     protected $via;
 
-    public function __construct(SettingGateway $settingGateway, MailerContract $mail, SMSContract $sms, NotificationGateway $notificationGateway, UserGateway $userGateway)
+    public function __construct(SettingGateway $settingGateway, MailerContract $mail, SMSContract $sms, WhatsappContract $whatsapp, NotificationGateway $notificationGateway, UserGateway $userGateway)
     {
         $this->settings = [
             'absoluteURL' => $settingGateway->getSettingByScope('System', 'absoluteURL'),
@@ -49,6 +50,7 @@ class MessageSender
         $this->userGateway = $userGateway;
         $this->mail = $mail;
         $this->sms = $sms;
+        $this->whatsapp = $whatsapp;
     }
 
     /**
@@ -71,6 +73,10 @@ class MessageSender
 
         foreach ($message->via() as $via) {
             switch ($via) {
+                case 'whatsapp':
+                    $sent = $this->sendViaWhatsapp($message, $recipients);
+                    break;
+
                 case 'sms':
                     $sent = $this->sendViaSMS($message, $recipients);
                     break;
@@ -97,6 +103,28 @@ class MessageSender
      * @return array
      */
     protected function sendViaSMS(Message $message, array $recipients = []) : array
+    {
+        if (empty($this->sms)) return [];
+
+        $phoneNumbers = array_map(function ($person) {
+            return ($person['phone1CountryCode'] ?? '').($person['phone1'] ?? '');
+        }, $recipients);
+
+        $sent = $this->sms
+            ->content($message->toSMS()."\n".'['.$this->settings['absoluteURL'].']')
+            ->send($phoneNumbers);
+
+        return is_array($sent) ? $sent : [$sent];
+    }
+
+    /**
+     * Sends the message via SMS and returns an array of the successful phone numbers.
+     *
+     * @param Message   $message
+     * @param array     $recipients
+     * @return array
+     */
+    protected function sendViaWhatsapp(Message $message, array $recipients = []) : array
     {
         if (empty($this->sms)) return [];
 

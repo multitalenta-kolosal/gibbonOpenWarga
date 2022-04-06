@@ -22,6 +22,7 @@ namespace Gibbon\Services;
 use Gibbon\Core;
 use Gibbon\Locale;
 use Gibbon\Comms\SMS;
+use Gibbon\Comms\Whatsapp;
 use Gibbon\View\Page;
 use Gibbon\View\View;
 use Gibbon\Comms\Mailer;
@@ -32,6 +33,7 @@ use Gibbon\Domain\System\Module;
 use Gibbon\Session\SessionFactory;
 use Gibbon\Services\Payment\Payment;
 use Gibbon\Domain\System\SettingGateway;
+use Gibbon\Contracts\Comms\Whatsapp as WhatsappInterface;
 use Gibbon\Contracts\Comms\SMS as SMSInterface;
 use Gibbon\Contracts\Comms\Mailer as MailerInterface;
 use Gibbon\Contracts\Services\Payment as PaymentInterface;
@@ -72,6 +74,7 @@ class CoreServiceProvider extends AbstractServiceProvider implements BootableSer
         'theme',
         PaymentInterface::class,
         MailerInterface::class,
+        WhatsappInterface::class,
         SMSInterface::class,
         'gibbon_logger',
         'mysql_logger',
@@ -266,6 +269,15 @@ class CoreServiceProvider extends AbstractServiceProvider implements BootableSer
                 'smsUsername'  => $settingGateway->getSettingByScope('Messenger', 'smsUsername'),
                 'smsPassword'  => $settingGateway->getSettingByScope('Messenger', 'smsPassword'),
                 'smsMailer'    => $smsGateway == 'Mail to SMS' ? $container->get(MailerInterface::class) : '',
+            ]);
+        });
+
+        $container->add(WhatsappInterface::class, function () use ($container) {
+            $settingGateway = $container->get(SettingGateway::class);
+            $whatsappApiKey = $settingGateway->getSettingByScope('system', 'whatsappApiKey');
+
+            return new Whatsapp([
+                'whatsappApiKey'  => $whatsappApiKey,
             ]);
         });
 
