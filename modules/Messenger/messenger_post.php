@@ -155,13 +155,18 @@ else {
 
                 $form->toggleVisibilityByClass('whatsapp')->onRadio('whatsapp')->when('Y');
 
+                $creditString = CallAPI("GET", "http://panel.rapiwha.com/get_credit.php", ["apikey" => "6OU5TP13T07D57U2TJBK"]);
+                $creditObj = json_decode($creditString);
+
                 $whatsappAlert = __('Pesan whatsapp akan menggunakan biaya sebesar 0.012 usd per pesan, pastikan menggunakan dengan bijak. Mungkin tidak semua format dari pesan (terutama gambar) dapat dengan baik terkirim ke nomor whatsapp tujuan');
 
                 $whatsapp = $container->get(Whatsapp::class);
 
                 $form->addHiddenValue('whatsappApiKey', $whatsappApiKey);
 
-                $form->addRow()->addAlert($whatsappAlert, 'warning')->addClass('whatsapp');
+                $form->addRow()->addAlert($whatsappAlert, 'warning')->addClass('whatsapp')
+                    ->append('<br/><span title="credits">'.__('Account Deposit:').' '.$creditObj->credit.' USD</span>');
+            
             }
         }
         

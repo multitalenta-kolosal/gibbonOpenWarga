@@ -278,3 +278,23 @@ function getColourArray()
 
     return $return;
 }
+
+function composeAttendanceMessage($data, $rowWhatsapp){
+
+$formattedDate = date('d-M-Y' ,strtotime($data['date']));
+
+return '
+*PERHATIAN*
+
+_*'.$rowWhatsapp['studentName'].'*_
+
+Tercatat *tidak mengikuti* kegiatan belajar mengajar
+pada tanggal: '.$formattedDate.'
+dengan detail sebagai berikut:
+
+Alasan: '.$data['reason'].'
+Keterangan: '.$data['comment'].'
+
+_Pesan ini dikirim secara otomatis, silakan menghubungi pihak yang bersangkutan untuk info lebih lanjut_
+';
+}

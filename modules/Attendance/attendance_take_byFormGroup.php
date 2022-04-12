@@ -258,7 +258,31 @@ if (isActionAccessible($guid, $connection2, '/modules/Attendance/attendance_take
                                 ->append('<br/><span title="'.__('e.g. Present or Present - Late').'">'.__('Total students present in room:').' '. $countPresent.'</span>')
                                 ->append('<br/><span title="'.__('e.g. not Present and not Present - Late').'">'.__('Total students absent from room:').' '. ($count-$countPresent).'</span>')
                                 ->wrap('<b>', '</b>');
+                            
+                            $setting = $settingGateway->getSettingByScope('System', 'enableWhatsapp', true);
+                            $whatsappApiKey = $settingGateway->getSettingByScope("System", "whatsappApiKey" ) ;
 
+                            if (empty($whatsappApiKey)) {
+                                $row = $form->addRow()->addClass('whatsapp');
+                                    $row->addLabel('whatsapp', __('whatsapp'))->description(__('Deliver this message to user\'s whatsapp?'));
+                                    $row->addAlert(sprintf(__('Whatsapp NOT CONFIGURED. Please contact %1$s for help.'), "<a href='mailto:" . $session->get('organisationAdministratorEmail') . "'>" . $session->get('organisationAdministratorName') . "</a>"), 'message');
+                            }
+                            else {
+                                $row = $form->addRow();
+                                $row->addLabel('notify_wa', __('Notify Parents using Whatsapp?'))->description(__('Notify left and absent student to parents whatsapp phone number'));
+                                $row->addYesNo('notify_wa')->selected('N')->required();
+
+                                $whatsappAlert = __('Pesan whatsapp akan menggunakan biaya sebesar 0.012 USD per pesan.');
+                                
+                                $creditString = CallAPI("GET", "http://panel.rapiwha.com/get_credit.php", ["apikey" => "6OU5TP13T07D57U2TJBK"]);
+                                $creditObj = json_decode($creditString);
+
+                                $form->addRow()->addAlert($whatsappAlert, 'warning')->addClass('whatsapp')
+                                    ->append('<br/><span title="credits">'.__('Account Deposit:').' '.$creditObj->credit.' USD</span>');
+
+                                $form->toggleVisibilityByClass('whatsapp')->onSelect('notify_wa')->when('Y');
+
+                            }
                             $row = $form->addRow();
 
                             // Drop-downs to change the whole group at once
