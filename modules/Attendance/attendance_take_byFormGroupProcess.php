@@ -152,10 +152,8 @@ if (isActionAccessible($guid, $connection2, '/modules/Attendance/attendance_take
 
                             if($_POST['notify_wa'] == "Y"){
 
-                                $logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), 'Masuk Y');
                                 if($data['direction'] == "Out"){
 
-                                    $logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), 'Masuk out');
                                     $whatsapp = $container->get(Whatsapp::class);
                                     
                                     try {

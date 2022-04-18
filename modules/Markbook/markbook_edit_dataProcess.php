@@ -20,9 +20,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Services\Format;
 use Gibbon\Domain\System\LogGateway;
+use Gibbon\Contracts\Comms\Whatsapp;
+use Gibbon\Domain\Timetable\CourseGateway;
 use Gibbon\Data\Validator;
 
 require_once '../../gibbon.php';
+include './moduleFunctions.php';
 
 $_POST = $container->get(Validator::class)->sanitize($_POST);
 
@@ -64,6 +67,9 @@ if (isActionAccessible($guid, $connection2, '/modules/Markbook/markbook_edit_dat
                 exit();
             }
 
+            $courseGateway = $container->get(CourseGateway::class);
+            $courseClass = $courseGateway->getCourseClassByID($gibbonCourseClassID);
+            
             if ($result->rowCount() != 1) {
                 $URL .= '&return=error2';
                 header("Location: {$URL}");
@@ -75,6 +81,7 @@ if (isActionAccessible($guid, $connection2, '/modules/Markbook/markbook_edit_dat
                 $attachmentFail = false;
                 $attainment = $row['attainment'];
                 $gibbonScaleIDAttainment = $row['gibbonScaleIDAttainment'];
+                $completeDateExisting = $row['completeDate' ];
                 if ($enableEffort != 'Y') {
                     $effort = 'N';
                     $gibbonScaleIDEffort = null;
@@ -87,6 +94,8 @@ if (isActionAccessible($guid, $connection2, '/modules/Markbook/markbook_edit_dat
                 $uploadedResponse = $row['uploadedResponse'];
                 $gibbonScaleIDAttainment = $row['gibbonScaleIDAttainment'];
                 $gibbonScaleIDTarget = $row['gibbonScaleIDTarget'];
+
+                $allRecipients = [];
 
                 for ($i = 1;$i <= $count;++$i) {
                     $gibbonPersonIDStudent = $_POST["$i-gibbonPersonID"];
@@ -327,6 +336,71 @@ if (isActionAccessible($guid, $connection2, '/modules/Markbook/markbook_edit_dat
                             }
                         }
                     }
+
+                    if($_POST['notify_wa'] == "Y"){
+                        // $logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), "TEST LOG", array('id' => $gibbonPersonIDStudent, 'nilai' => $attainmentValue, 'Recipients' => $recipients));
+
+                        $messageData = [
+                            "completeDate"      => $completeDateExisting,              
+                            "courseName"        => $courseClass["courseName"],
+                            "courseDescription" => $courseClass["courseDescription"],
+                            "columnName"        => $name,
+                            "attainment"        => $attainmentValue,
+                            "comment"           => $commentValue,
+                        ];
+
+                        $whatsapp = $container->get(Whatsapp::class);
+                        
+                        try {
+                            $dataWhatsapp=array('studentID' => $gibbonPersonIDStudent);
+                            $sqlWhatsapp="(SELECT *
+                            FROM 
+                            (
+                                SELECT DISTINCT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID as parentID, gibbonFamily.gibbonFamilyID as family FROM gibbonPerson
+                                JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) 
+                                JOIN gibbonFamily ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID)
+                                WHERE NOT phone1='' AND phone1Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full'
+                            ) q1
+                            JOIN (
+                                SELECT DISTINCT gibbonPerson.gibbonPersonID as studentID, gibbonPerson.officialName as studentName, gibbonFamily.gibbonFamilyID as family FROM gibbonPerson
+                                JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonPersonID=gibbonPerson.gibbonPersonID) 
+                                JOIN gibbonFamily ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID)
+                            ) q2
+                            ON q1.family = q2.family
+                            WHERE studentID = :studentID)";
+                            $resultWhatsapp=$connection2->prepare($sqlWhatsapp);
+                            $resultWhatsapp->execute($dataWhatsapp);
+                            
+                        }
+                        catch(PDOException $e) {}
+    
+                        while ($rowWhatsapp=$resultWhatsapp->fetch()) {
+                            $recipients = [];
+                            $countryCodeTemp = "";
+                            
+                            if ($rowWhatsapp["countryCode"]=="")
+                                $countryCodeTemp = $rowWhatsapp["countryCode"];
+    
+                            $recipients[] = $rowWhatsapp['phone'];
+                            $allRecipients[] = $rowWhatsapp['phone'];
+    
+                            $result = $whatsapp
+                            ->from($session->get('email'))
+                            ->content(composeGradeNotificationMessage($messageData, $rowWhatsapp))
+                            ->send($recipients);
+    
+                            $whatsappCount = count($recipients);
+    
+                            $whatsappStatus = $result ? 'OK' : 'Not OK';
+                            $partialFail &= !empty($result);
+    
+                            //Set log
+                        }
+                    }
+
+                    //Set log                
+                    $logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), 'whatsapp Send Status Markbook', array('Recipients' => $allRecipients, 'JSON' => json_encode($_POST)));
+
                 }
 
                 //Update column

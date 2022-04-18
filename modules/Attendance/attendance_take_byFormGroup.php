@@ -274,11 +274,11 @@ if (isActionAccessible($guid, $connection2, '/modules/Attendance/attendance_take
 
                                 $whatsappAlert = __('Pesan whatsapp akan menggunakan biaya sebesar 0.012 USD per pesan.');
                                 
-                                $creditString = CallAPI("GET", "http://panel.rapiwha.com/get_credit.php", ["apikey" => "6OU5TP13T07D57U2TJBK"]);
+                                $creditString = CallAPI("GET", "http://panel.rapiwha.com/get_credit.php", ["apikey" => $whatsappApiKey]);
                                 $creditObj = json_decode($creditString);
 
                                 $form->addRow()->addAlert($whatsappAlert, 'warning')->addClass('whatsapp')
-                                    ->append('<br/><span title="credits">'.__('Account Deposit:').' '.$creditObj->credit.' USD</span>');
+                                    ->append('<br/><span title="credits">'.__('Saldo:').' '.$creditObj->credit.' USD</span>');
 
                                 $form->toggleVisibilityByClass('whatsapp')->onSelect('notify_wa')->when('Y');
 

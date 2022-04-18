@@ -494,6 +494,36 @@ if (isActionAccessible($guid, $connection2, '/modules/Markbook/markbook_edit_dat
                     $row = $form->addRow();
                         $row->addLabel('completeDate', __('Go Live Date'))->prepend('1. ')->append('<br/>'.__('2. Column is hidden until date is reached.'));
                         $row->addDate('completeDate');
+                    
+                    $setting = $settingGateway->getSettingByScope('System', 'enableWhatsapp', true);
+                    $whatsappApiKey = $settingGateway->getSettingByScope("System", "whatsappApiKey" ) ;
+
+                    if (empty($whatsappApiKey)) {
+                        $row = $form->addRow()->addClass('whatsapp');
+                            $row->addLabel('whatsapp', __('whatsapp'))->description(__('Deliver this message to user\'s whatsapp?'));
+                            $row->addAlert(sprintf(__('Whatsapp NOT CONFIGURED. Please contact %1$s for help.'), "<a href='mailto:" . $session->get('organisationAdministratorEmail') . "'>" . $session->get('organisationAdministratorName') . "</a>"), 'message');
+                    }
+                    else {
+                        $row = $form->addRow();
+                        $row->addLabel('notify_wa', __('Notify Parents using Whatsapp?'))->description(__('Notify Grade to parents whatsapp phone number'));
+                        $row->addYesNo('notify_wa')->selected('N')->required();
+
+                        $whatsappAlert = __('Pesan whatsapp akan menggunakan biaya sebesar 0.012 USD per pesan.');
+                        
+                        $creditString = CallAPI("GET", "http://panel.rapiwha.com/get_credit.php", ["apikey" => $whatsappApiKey]);
+                        $creditObj = json_decode($creditString);
+                        $estimatedFee  = (0.012 * $count);
+                        $remainderDeposit  = $creditObj->credit - $estimatedFee;
+
+                        $form->addRow()->addAlert($whatsappAlert, 'warning')->addClass('whatsapp')
+                            ->append('<br/><span title="credits">'.__('Saldo:').' '.$creditObj->credit.' USD</span>')
+                            ->append('<br/><br/><span title="estimatedFee">'.__('Estimasi Biaya:').' 0.012 x '. $count.' Siswa = '.$estimatedFee.' USD</span>')
+                            ->append('<br/><span title="remainderDeposit">'.__('Estimasi Sisa Saldo:').$creditObj->credit.' - '.$estimatedFee.' = '.$remainderDeposit.' USD</span>')
+                            ->append('<br/><br/><span title="reminder for estimation">'.__('Estimasi biaya hanya berlaku apabila semua orang tua siswa memiliki nomor whatsapp. Jika beberapa orang tua tidak memiliki whatsapp, maka biaya yang dikeluarkan akan menjadi lebih rendah').'</span>');
+
+                        $form->toggleVisibilityByClass('whatsapp')->onSelect('notify_wa')->when('Y');
+
+                    }
 
                     $row = $form->addRow();
                         $row->addContent(getMaxUpload($guid, true));
