@@ -21,6 +21,7 @@ use Gibbon\Data\Validator;
 use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Services\Format;
 use Gibbon\Contracts\Comms\SMS;
+use Gibbon\Contracts\Comms\Whatsapp;
 use Gibbon\Contracts\Comms\Mailer;
 use Gibbon\Comms\NotificationSender;
 use Gibbon\Domain\System\LogGateway;
@@ -97,6 +98,14 @@ else {
 			$sms="N" ;
 		}
 		$smsCreditBalance = ($sms == "Y" && !empty($_POST["smsCreditBalance"])) ? $_POST["smsCreditBalance"] : null;
+
+		$whatsapp=NULL ;
+		if (isset($_POST["whatsapp"])) {
+			$whatsapp=$_POST["whatsapp"] ;
+		}
+		if ($whatsapp!="Y") {
+			$whatsapp="N" ;
+		}
 
         $subject = $_POST['subject'] ?? '';
         $body = stripslashes($_POST['body'] ?? '');
@@ -227,6 +236,47 @@ else {
 									}
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($category=="Parent") {
+									try {
+										$dataEmail=array('gibbonRoleID'=>$gibbonRoleID);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND contactSMS='Y')" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND contactSMS='Y')" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND contactSMS='Y')" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND contactSMS='Y')" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+
+									//make this step obsolete until intention clear
+
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Role', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								else {
+									try {
+										$dataEmail=array('gibbonRoleID'=>$gibbonRoleID);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone1='' AND phone1Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone2='' AND phone2Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone3='' AND phone3Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone4='' AND phone4Type='Mobile' AND FIND_IN_SET(:gibbonRoleID, gibbonPerson.gibbonRoleIDAll) AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+										$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Role', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+							}
 						}
 					}
 				}
@@ -309,6 +359,44 @@ else {
 										if ($rowEmail["countryCode"]=="")
 											$countryCodeTemp = $rowEmail["countryCode"];
 										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Role Category', $t, 'SMS', $countryCodeTemp.$rowEmail["phone"]);
+									}
+								}
+							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($t=="Parent") {
+									try {
+										$dataEmail=array("category"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone1='' AND phone1Type='Mobile' AND category=:category AND status='Full' AND contactSMS='Y')" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone2='' AND phone2Type='Mobile' AND category=:category AND status='Full' AND contactSMS='Y')" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone3='' AND phone3Type='Mobile' AND category=:category AND status='Full' AND contactSMS='Y')" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone4='' AND phone4Type='Mobile' AND category=:category AND status='Full' AND contactSMS='Y')" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { print $e->getMessage() ;}
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Role Category', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								else {
+									try {
+										$dataEmail=array("category"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone1='' AND phone1Type='Mobile' AND category=:category AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone2='' AND phone2Type='Mobile' AND category=:category AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone3='' AND phone3Type='Mobile' AND category=:category AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonRole ON (FIND_IN_SET(gibbonRole.gibbonRoleID, gibbonPerson.gibbonRoleIDAll)) WHERE NOT phone4='' AND phone4Type='Mobile' AND category=:category AND status='Full' AND (dateStart IS NULL OR dateStart<=CURRENT_DATE) AND (dateEnd IS NULL OR dateEnd>=CURRENT_DATE))" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Role Category', $t, 'Whatsapp', $rowEmail["phone"]);
 									}
 								}
 							}
@@ -489,6 +577,80 @@ else {
 									}
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array();
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full')" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full')" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full')" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full')" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Year Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonSchoolYearID"=>$session->get('gibbonSchoolYearID'), "gibbonYearGroupID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonYearGroupID=:gibbonYearGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonYearGroupID=:gibbonYearGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonYearGroupID=:gibbonYearGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonYearGroupID=:gibbonYearGroupID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Year Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataStudents=array("gibbonSchoolYearID"=>$session->get('gibbonSchoolYearID'), "gibbonYearGroupID"=>$t);
+										$sqlStudents="SELECT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonYearGroupID=:gibbonYearGroupID" ;
+										$resultStudents=$connection2->prepare($sqlStudents);
+										$resultStudents->execute($dataStudents);
+									}
+									catch(PDOException $e) { }
+									while ($rowStudents=$resultStudents->fetch()) {
+										try {
+											$dataFamily=array("gibbonPersonID"=>$rowStudents["gibbonPersonID"]);
+											$sqlFamily="SELECT DISTINCT gibbonFamily.gibbonFamilyID FROM gibbonFamily JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE gibbonPersonID=:gibbonPersonID" ;
+											$resultFamily=$connection2->prepare($sqlFamily);
+											$resultFamily->execute($dataFamily);
+										}
+										catch(PDOException $e) { }
+										while ($rowFamily=$resultFamily->fetch()) {
+											try {
+												$dataEmail=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+												$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$resultEmail=$connection2->prepare($sqlEmail);
+												$resultEmail->execute($dataEmail);
+											}
+											catch(PDOException $e) { }
+											while ($rowEmail=$resultEmail->fetch()) {
+												$countryCodeTemp = $countryCode;
+												if ($rowEmail["countryCode"]=="")
+													$countryCodeTemp = $rowEmail["countryCode"];
+												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Year Group', $t, 'Whatsapp', $rowEmail["phone"]);
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 				}
@@ -642,6 +804,80 @@ else {
 												if ($rowEmail["countryCode"]=="")
 													$countryCodeTemp = $rowEmail["countryCode"];
 												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Form Group', $t, 'SMS', $countryCodeTemp.$rowEmail["phone"]);
+											}
+										}
+									}
+								}
+							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array("gibbonFormGroupID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFormGroup ON (gibbonFormGroup.gibbonPersonIDTutor=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor2=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor3=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFormGroup ON (gibbonFormGroup.gibbonPersonIDTutor=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor2=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor3=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFormGroup ON (gibbonFormGroup.gibbonPersonIDTutor=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor2=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor3=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFormGroup ON (gibbonFormGroup.gibbonPersonIDTutor=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor2=gibbonPerson.gibbonPersonID OR gibbonFormGroup.gibbonPersonIDTutor3=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Form Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonSchoolYearID"=>$session->get('gibbonSchoolYearID'), "gibbonFormGroupID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonFormGroupID=:gibbonFormGroupID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Form Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataStudents=array("gibbonSchoolYearID"=>$session->get('gibbonSchoolYearID'), "gibbonFormGroupID"=>$t);
+										$sqlStudents="SELECT DISTINCT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonFormGroupID=:gibbonFormGroupID" ;
+										$resultStudents=$connection2->prepare($sqlStudents);
+										$resultStudents->execute($dataStudents);
+									}
+									catch(PDOException $e) { }
+									while ($rowStudents=$resultStudents->fetch()) {
+										try {
+											$dataFamily=array("gibbonPersonID"=>$rowStudents["gibbonPersonID"]);
+											$sqlFamily="SELECT DISTINCT gibbonFamily.gibbonFamilyID FROM gibbonFamily JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE gibbonPersonID=:gibbonPersonID" ;
+											$resultFamily=$connection2->prepare($sqlFamily);
+											$resultFamily->execute($dataFamily);
+										}
+										catch(PDOException $e) { }
+										while ($rowFamily=$resultFamily->fetch()) {
+											try {
+												$dataEmail=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+												$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$resultEmail=$connection2->prepare($sqlEmail);
+												$resultEmail->execute($dataEmail);
+											}
+											catch(PDOException $e) { }
+											while ($rowEmail=$resultEmail->fetch()) {
+												$countryCodeTemp = $countryCode;
+												if ($rowEmail["countryCode"]=="")
+													$countryCodeTemp = $rowEmail["countryCode"];
+												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Form Group', $t, 'Whatsapp', $rowEmail["phone"]);
 											}
 										}
 									}
@@ -831,6 +1067,96 @@ else {
 									}
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array("gibbonCourseID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Course', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonCourseID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Course', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataStudents=array("gibbonCourseID"=>$t);
+										$sqlStudents="SELECT DISTINCT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourse.gibbonCourseID=:gibbonCourseID" ;
+										$resultStudents=$connection2->prepare($sqlStudents);
+										$resultStudents->execute($dataStudents);
+									}
+									catch(PDOException $e) { }
+									while ($rowStudents=$resultStudents->fetch()) {
+										try {
+											$dataFamily=array("gibbonPersonID"=>$rowStudents["gibbonPersonID"]);
+											$sqlFamily="SELECT DISTINCT gibbonFamily.gibbonFamilyID FROM gibbonFamily JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE gibbonPersonID=:gibbonPersonID" ;
+											$resultFamily=$connection2->prepare($sqlFamily);
+											$resultFamily->execute($dataFamily);
+										}
+										catch(PDOException $e) { }
+										while ($rowFamily=$resultFamily->fetch()) {
+											try {
+												$dataEmail=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+												$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$resultEmail=$connection2->prepare($sqlEmail);
+												$resultEmail->execute($dataEmail);
+											}
+											catch(PDOException $e) { }
+											while ($rowEmail=$resultEmail->fetch()) {
+												$countryCodeTemp = $countryCode;
+												if ($rowEmail["countryCode"]=="")
+													$countryCodeTemp = $rowEmail["countryCode"];
+												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Course', $t, 'Whatsapp', $rowEmail["phone"]);
+											}
+										}
+									}
+									try {
+										$dataEmail=array("gibbonCourseID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Parent' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Parent' AND NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Parent' AND NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Parent' AND NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonCourse.gibbonCourseID=:gibbonCourseID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Course', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+							}
 						}
 					}
 				}
@@ -1016,6 +1342,96 @@ else {
 									}
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array("gibbonCourseClassID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE (role='Teacher' OR role='Assistant' OR role='Technician') AND NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Class', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonCourseClassID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Class', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataStudents=array("gibbonCourseClassID"=>$t);
+										$sqlStudents="SELECT DISTINCT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) JOIN gibbonCourse ON (gibbonCourseClass.gibbonCourseID=gibbonCourse.gibbonCourseID) WHERE role='Student' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID" ;
+										$resultStudents=$connection2->prepare($sqlStudents);
+										$resultStudents->execute($dataStudents);
+									}
+									catch(PDOException $e) { }
+									while ($rowStudents=$resultStudents->fetch()) {
+										try {
+											$dataFamily=array("gibbonPersonID"=>$rowStudents["gibbonPersonID"]);
+											$sqlFamily="SELECT DISTINCT gibbonFamily.gibbonFamilyID FROM gibbonFamily JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE gibbonPersonID=:gibbonPersonID" ;
+											$resultFamily=$connection2->prepare($sqlFamily);
+											$resultFamily->execute($dataFamily);
+										}
+										catch(PDOException $e) { }
+										while ($rowFamily=$resultFamily->fetch()) {
+											try {
+												$dataEmail=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+												$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$resultEmail=$connection2->prepare($sqlEmail);
+												$resultEmail->execute($dataEmail);
+											}
+											catch(PDOException $e) { }
+											while ($rowEmail=$resultEmail->fetch()) {
+												$countryCodeTemp = $countryCode;
+												if ($rowEmail["countryCode"]=="")
+													$countryCodeTemp = $rowEmail["countryCode"];
+												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Class', $t, 'Whatsapp', $rowEmail["phone"]);
+											}
+										}
+									}
+									try {
+										$dataEmail=array("gibbonCourseClassID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) WHERE role='Parent' AND NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) WHERE role='Parent' AND NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) WHERE role='Parent' AND NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonCourseClassPerson ON (gibbonCourseClassPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonCourseClass ON (gibbonCourseClassPerson.gibbonCourseClassID=gibbonCourseClass.gibbonCourseClassID) WHERE role='Parent' AND NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonCourseClass.gibbonCourseClassID=:gibbonCourseClassID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Class', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+							}
 						}
 					}
 				}
@@ -1169,6 +1585,80 @@ else {
 												if ($rowEmail["countryCode"]=="")
 													$countryCodeTemp = $rowEmail["countryCode"];
 												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Activity', $t, 'SMS', $countryCodeTemp.$rowEmail["phone"]);
+											}
+										}
+									}
+								}
+							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array("gibbonActivityID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStaff ON (gibbonActivityStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStaff.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStaff ON (gibbonActivityStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStaff.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStaff ON (gibbonActivityStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStaff.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStaff ON (gibbonActivityStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStaff.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Activity', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonActivityID"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStudent ON (gibbonActivityStudent.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStudent.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone1='' AND phone1Type='Mobile' AND gibbonPerson.status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonActivityStudent.status='Accepted' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStudent ON (gibbonActivityStudent.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStudent.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone2='' AND phone2Type='Mobile' AND gibbonPerson.status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonActivityStudent.status='Accepted' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStudent ON (gibbonActivityStudent.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStudent.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone3='' AND phone3Type='Mobile' AND gibbonPerson.status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonActivityStudent.status='Accepted' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStudent ON (gibbonActivityStudent.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStudent.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE NOT phone4='' AND phone4Type='Mobile' AND gibbonPerson.status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonActivityStudent.status='Accepted' AND gibbonActivity.gibbonActivityID=:gibbonActivityID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Activity', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataStudents=array("gibbonActivityID"=>$t);
+										$sqlStudents="SELECT DISTINCT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonActivityStudent ON (gibbonActivityStudent.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonActivity ON (gibbonActivityStudent.gibbonActivityID=gibbonActivity.gibbonActivityID) WHERE gibbonPerson.status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonActivityStudent.status='Accepted' AND gibbonActivity.gibbonActivityID=:gibbonActivityID" ;
+										$resultStudents=$connection2->prepare($sqlStudents);
+										$resultStudents->execute($dataStudents);
+									}
+									catch(PDOException $e) { }
+									while ($rowStudents=$resultStudents->fetch()) {
+										try {
+											$dataFamily=array("gibbonPersonID"=>$rowStudents["gibbonPersonID"]);
+											$sqlFamily="SELECT DISTINCT gibbonFamily.gibbonFamilyID FROM gibbonFamily JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE gibbonPersonID=:gibbonPersonID" ;
+											$resultFamily=$connection2->prepare($sqlFamily);
+											$resultFamily->execute($dataFamily);
+										}
+										catch(PDOException $e) { }
+										while ($rowFamily=$resultFamily->fetch()) {
+											try {
+												$dataEmail=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+												$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$resultEmail=$connection2->prepare($sqlEmail);
+												$resultEmail->execute($dataEmail);
+											}
+											catch(PDOException $e) { print $e->getMessage() ;}
+											while ($rowEmail=$resultEmail->fetch()) {
+												$countryCodeTemp = $countryCode;
+												if ($rowEmail["countryCode"]=="")
+													$countryCodeTemp = $rowEmail["countryCode"];
+												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Activity', $t, 'Whatsapp', $rowEmail["phone"]);
 											}
 										}
 									}
@@ -1372,6 +1862,104 @@ else {
     								}
                                 }
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+                                if ($students == "Y") {
+                                    //Get applicant phone numbers
+    								try {
+    									$dataEmail=array("gibbonSchoolYearIDEntry"=>$t);
+    									$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode FROM gibbonApplicationForm WHERE NOT phone1='' AND phone1Type='Mobile' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode FROM gibbonApplicationForm WHERE NOT phone2='' AND phone2Type='Mobile' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$resultEmail=$connection2->prepare($sqlEmail);
+    									$resultEmail->execute($dataEmail);
+    								}
+    								catch(PDOException $e) { }
+    								while ($rowEmail=$resultEmail->fetch()) {
+    									$countryCodeTemp = $countryCode;
+    									if ($rowEmail["countryCode"]=="")
+    										$countryCodeTemp = $rowEmail["countryCode"];
+    									$report = reportAdd($report, $emailReceipt, NULL, 'Applicants', $t, 'Whatsapp', $rowEmail["phone"]);
+    								}
+                                }
+
+                                if ($parents == "Y") {
+    								//Get parent 1 numbers
+    								try {
+    									$dataEmail=array("gibbonSchoolYearIDEntry"=>$t);
+    									$sqlEmail="(SELECT CONCAT(parent1phone1CountryCode,parent1phone1) AS phone, parent1phone1CountryCode AS countryCode FROM gibbonApplicationForm WHERE NOT parent1phone1='' AND parent1phone1Type='Mobile' AND parent1phone1CountryCode='$countryCode' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$sqlEmail.=" UNION (SELECT CONCAT(parent1phone2CountryCode,parent1phone2) AS phone, parent1phone2CountryCode AS countryCode FROM gibbonApplicationForm WHERE NOT parent1phone2='' AND parent1phone2Type='Mobile' AND parent1phone2CountryCode='$countryCode' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$resultEmail=$connection2->prepare($sqlEmail);
+    									$resultEmail->execute($dataEmail);
+    								}
+    								catch(PDOException $e) { }
+    								while ($rowEmail=$resultEmail->fetch()) {
+    									$countryCodeTemp = $countryCode;
+    									if ($rowEmail["countryCode"]=="")
+    										$countryCodeTemp = $rowEmail["countryCode"];
+    									$report = reportAdd($report, $emailReceipt, NULL, 'Applicants', $t, 'Whatsapp', $rowEmail["phone"]);
+    								}
+
+    								//Get parent 2 numbers
+    								try {
+    									$dataEmail=array("gibbonSchoolYearIDEntry"=>$t);
+    									$sqlEmail="(SELECT CONCAT(parent2phone1CountryCode,parent2phone1) AS phone, parent2phone1CountryCode AS countryCode FROM gibbonApplicationForm WHERE NOT parent2phone1='' AND parent2phone1Type='Mobile' AND parent2phone1CountryCode='$countryCode' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$sqlEmail.=" UNION (SELECT CONCAT(parent2phone2CountryCode,parent2phone2) AS phone, parent2phone2CountryCode AS countryCode FROM gibbonApplicationForm WHERE NOT parent2phone2='' AND parent2phone2Type='Mobile' AND parent2phone2CountryCode='$countryCode' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$resultEmail=$connection2->prepare($sqlEmail);
+    									$resultEmail->execute($dataEmail);
+    								}
+    								catch(PDOException $e) { }
+    								while ($rowEmail=$resultEmail->fetch()) {
+    									$countryCodeTemp = $countryCode;
+    									if ($rowEmail["countryCode"]=="")
+    										$countryCodeTemp = $rowEmail["countryCode"];
+    									$report = reportAdd($report, $emailReceipt, NULL, 'Applicants', $t, 'Whatsapp', $rowEmail["phone"]);
+    								}
+
+    								//Get parent ID numbers (when no family in system, but user is in system)
+    								try {
+    									$dataEmail=array("gibbonSchoolYearIDEntry"=>$t);
+    									$sqlEmail="(SELECT CONCAT(gibbonPerson.phone1CountryCode,gibbonPerson.phone1) AS phone, gibbonPerson.gibbonPersonID FROM gibbonApplicationForm JOIN gibbonPerson ON (gibbonApplicationForm.parent1gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone1='' AND gibbonPerson.phone1Type='Mobile' AND gibbonPerson.phone1CountryCode='$countryCode' AND NOT parent1gibbonPersonID='' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$sqlEmail.=" UNION (SELECT CONCAT(gibbonPerson.phone2CountryCode,gibbonPerson.phone2) AS phone, gibbonPerson.gibbonPersonID FROM gibbonApplicationForm JOIN gibbonPerson ON (gibbonApplicationForm.parent1gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone2='' AND gibbonPerson.phone2Type='Mobile' AND gibbonPerson.phone2CountryCode='$countryCode' AND NOT parent1gibbonPersonID='' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$sqlEmail.=" UNION (SELECT CONCAT(gibbonPerson.phone3CountryCode,gibbonPerson.phone3) AS phone, gibbonPerson.gibbonPersonID FROM gibbonApplicationForm JOIN gibbonPerson ON (gibbonApplicationForm.parent1gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone3='' AND gibbonPerson.phone3Type='Mobile' AND gibbonPerson.phone3CountryCode='$countryCode' AND NOT parent1gibbonPersonID='' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$sqlEmail.=" UNION (SELECT CONCAT(gibbonPerson.phone4CountryCode,gibbonPerson.phone4) AS phone, gibbonPerson.gibbonPersonID FROM gibbonApplicationForm JOIN gibbonPerson ON (gibbonApplicationForm.parent1gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone4='' AND gibbonPerson.phone4Type='Mobile' AND gibbonPerson.phone4CountryCode='$countryCode' AND NOT parent1gibbonPersonID='' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere)" ;
+    									$resultEmail=$connection2->prepare($sqlEmail);
+    									$resultEmail->execute($dataEmail);
+    								}
+    								catch(PDOException $e) { }
+    								while ($rowEmail=$resultEmail->fetch()) {
+    									$countryCodeTemp = $countryCode;
+    									if ($rowEmail["countryCode"]=="")
+    										$countryCodeTemp = $rowEmail["countryCode"];
+    									$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Applicants', $t, 'Whatsapp', $rowEmail["phone"]);
+    								}
+
+    								//Get family numbers
+    								try {
+    									$dataEmail=array("gibbonSchoolYearIDEntry"=>$t);
+    									$sqlEmail="SELECT * FROM gibbonApplicationForm WHERE NOT gibbonFamilyID='' AND gibbonSchoolYearIDEntry=:gibbonSchoolYearIDEntry $applicantsWhere" ;
+    									$resultEmail=$connection2->prepare($sqlEmail);
+    									$resultEmail->execute($dataEmail);
+    								}
+    								catch(PDOException $e) { }
+    								while ($rowEmail=$resultEmail->fetch()) {
+    									try {
+    										$dataEmail2=array("gibbonFamilyID"=>$rowEmail["gibbonFamilyID"]);
+    										$sqlEmail2="(SELECT CONCAT(gibbonPerson.phone1CountryCode,gibbonPerson.phone1) AS phone, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone1='' AND gibbonPerson.phone1Type='Mobile' AND gibbonPerson.phone1CountryCode='$countryCode' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID)" ;
+    										$sqlEmail2.=" UNION (SELECT CONCAT(gibbonPerson.phone2CountryCode,gibbonPerson.phone2) AS phone, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone2='' AND gibbonPerson.phone2Type='Mobile' AND gibbonPerson.phone2CountryCode='$countryCode' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID)" ;
+    										$sqlEmail2.=" UNION (SELECT CONCAT(gibbonPerson.phone3CountryCode,gibbonPerson.phone3) AS phone, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone3='' AND gibbonPerson.phone3Type='Mobile' AND gibbonPerson.phone3CountryCode='$countryCode' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID)" ;
+    										$sqlEmail2.=" UNION (SELECT CONCAT(gibbonPerson.phone4CountryCode,gibbonPerson.phone4) AS phone, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT gibbonPerson.phone4='' AND gibbonPerson.phone4Type='Mobile' AND gibbonPerson.phone4CountryCode='$countryCode' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID)" ;
+    										$resultEmail2=$connection2->prepare($sqlEmail2);
+    										$resultEmail2->execute($dataEmail2);
+    									}
+    									catch(PDOException $e) { }
+    									while ($rowEmail2=$resultEmail2->fetch()) {
+    										$countryCodeTemp = $countryCode;
+    										if ($rowEmail2["countryCode"]=="")
+    											$countryCodeTemp = $rowEmail2["countryCode"];
+    										$report = reportAdd($report, $emailReceipt, $rowEmail2['gibbonPersonID'], 'Applicants', $t, 'SMS', $rowEmail2["phone"]);
+    									}
+    								}
+                                }
+							}
 						}
 					}
 				}
@@ -1421,6 +2009,24 @@ else {
 									if ($rowEmail["countryCode"]=="")
 										$countryCodeTemp = $rowEmail["countryCode"];
 									$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Houses', $t, 'SMS', $countryCodeTemp.$rowEmail["phone"]);
+								}
+							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								try {
+									$dataEmail=array("gibbonHouseID"=>$t);
+									$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone1='' AND phone1Type='Mobile' AND gibbonHouseID=:gibbonHouseID AND status='Full')" ;
+									$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone2='' AND phone2Type='Mobile' AND gibbonHouseID=:gibbonHouseID AND status='Full')" ;
+									$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone3='' AND phone3Type='Mobile' AND gibbonHouseID=:gibbonHouseID AND status='Full')" ;
+									$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone4='' AND phone4Type='Mobile' AND gibbonHouseID=:gibbonHouseID AND status='Full')" ;
+									$resultEmail=$connection2->prepare($sqlEmail);
+									$resultEmail->execute($dataEmail);
+								}
+								catch(PDOException $e) { }
+								while ($rowEmail=$resultEmail->fetch()) {
+									$countryCodeTemp = $countryCode;
+									if ($rowEmail["countryCode"]=="")
+										$countryCodeTemp = $rowEmail["countryCode"];
+									$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Houses', $t, 'Whatsapp', $rowEmail["phone"]);
 								}
 							}
 						}
@@ -1581,6 +2187,80 @@ else {
 									}
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array("transport"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND transport=:transport)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND transport=:transport)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND transport=:transport)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND transport=:transport)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Transport', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonSchoolYearID"=>$session->get('gibbonSchoolYearID'), "transport"=>$t);
+										$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND transport=:transport)" ;
+										$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND transport=:transport)" ;
+										$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND transport=:transport)" ;
+										$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND transport=:transport)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Transport', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataStudents=array("gibbonSchoolYearID"=>$session->get('gibbonSchoolYearID'), "transport"=>$t);
+										$sqlStudents="SELECT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE status='Full' AND (dateStart IS NULL OR dateStart<='" . date("Y-m-d") . "') AND (dateEnd IS NULL  OR dateEnd>='" . date("Y-m-d") . "') AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND transport=:transport" ;
+										$resultStudents=$connection2->prepare($sqlStudents);
+										$resultStudents->execute($dataStudents);
+									}
+									catch(PDOException $e) { }
+									while ($rowStudents=$resultStudents->fetch()) {
+										try {
+											$dataFamily=array("gibbonPersonID"=>$rowStudents["gibbonPersonID"]);
+											$sqlFamily="SELECT DISTINCT gibbonFamily.gibbonFamilyID FROM gibbonFamily JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE gibbonPersonID=:gibbonPersonID" ;
+											$resultFamily=$connection2->prepare($sqlFamily);
+											$resultFamily->execute($dataFamily);
+										}
+										catch(PDOException $e) { }
+										while ($rowFamily=$resultFamily->fetch()) {
+											try {
+												$dataEmail=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+												$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y')" ;
+												$resultEmail=$connection2->prepare($sqlEmail);
+												$resultEmail->execute($dataEmail);
+											}
+											catch(PDOException $e) { }
+											while ($rowEmail=$resultEmail->fetch()) {
+												$countryCodeTemp = $countryCode;
+												if ($rowEmail["countryCode"]=="")
+													$countryCodeTemp = $rowEmail["countryCode"];
+												$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Transport', $t, 'Whatsapp', $rowEmail["phone"]);
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 				}
@@ -1731,6 +2411,67 @@ else {
                                 }
                               }
                             } //END SMS
+							//Get Whatsapp
+                            if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($parents=="Y") {
+								  try { //Get the familyIDs for each student logged
+								  $dataFamily=array();
+								  $sqlFamily="SELECT DISTINCT gibbonFamilyID FROM gibbonFamilyChild WHERE gibbonPersonID IN (".implode(",",$selectedStudents).")" ;
+								  $resultFamily=$connection2->prepare($sqlFamily);
+								  $resultFamily->execute($dataFamily);
+								  $resultFamilies = $resultFamily->fetchAll();
+								  }
+								  catch(PDOException $e) { }
+  
+								  foreach ($resultFamilies as $rowFamily) { //Get the people for each familyID
+									try {
+									  $dataPerson=array("gibbonFamilyID"=>$rowFamily["gibbonFamilyID"] );
+									  $sqlPerson="SELECT DISTINCT gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE status='Full' AND gibbonFamilyAdult.gibbonFamilyID=:gibbonFamilyID AND contactSMS='Y'" ;
+									  $resultPerson=$connection2->prepare($sqlPerson);
+									  $resultPerson->execute($dataPerson);
+									}
+									catch(PDOException $e) { }
+									while ($rowPerson=$resultPerson->fetch()) { //Add phone numbers to SMS receivers
+									  try {
+										$dataSMS=array("gibbonPersonID"=>$rowPerson["gibbonPersonID"] );
+										$sqlSMS="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone1='' AND phone1Type='Mobile' AND gibbonPersonID=:gibbonPersonID)" ;
+										$sqlSMS.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone2='' AND phone2Type='Mobile' AND gibbonPersonID=:gibbonPersonID)" ;
+										$sqlSMS.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone3='' AND phone3Type='Mobile' AND gibbonPersonID=:gibbonPersonID)" ;
+										$sqlSMS.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone4='' AND phone4Type='Mobile' AND gibbonPersonID=:gibbonPersonID)" ;
+										$resultSMS=$connection2->prepare($sqlSMS);
+										$resultSMS->execute($dataSMS);
+									  }
+									  catch(PDOException $e) { }
+									  while ($rowSMS=$resultSMS->fetch()) {
+										  $countryCodeTemp = $countryCode;
+											  if ($rowSMS["countryCode"]=="")
+												  $countryCodeTemp = $rowSMS["countryCode"];
+											  $report = reportAdd($report, $emailReceipt, $rowSMS['gibbonPersonID'], 'Attendance', $t, 'SMS', $rowSMS["phone"]);
+									  }
+									}
+								  }
+								}
+								if ($students=="Y") {
+								  try { //Get the phone numbers for each student
+									foreach ($selectedStudents as $t) {
+									  $dataSMS=array("gibbonPersonID"=>$t);
+									  $sqlSMS="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone1='' AND phone1Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									  $sqlSMS.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone2='' AND phone2Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									  $sqlSMS.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone3='' AND phone3Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									  $sqlSMS.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT  phone4='' AND phone4Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									  $resultSMS=$connection2->prepare($sqlSMS);
+									  $resultSMS->execute($dataSMS);
+									}
+								  }
+								  catch(PDOException $e) { }
+								  while ($rowSMS=$resultSMS->fetch()) {
+									  $countryCodeTemp = $countryCode;
+										  if ($rowSMS["countryCode"]=="")
+											  $countryCodeTemp = $rowSMS["countryCode"];
+										  $report = reportAdd($report, $emailReceipt, $rowSMS['gibbonPersonID'], 'Attendance', $t, 'SMS', $rowSMS["phone"]);
+								  }
+								}
+							  } //END whatsapp
                           }
                         }
                       }
@@ -1887,6 +2628,66 @@ else {
 									}
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								if ($staff=="Y") {
+									try {
+										$dataEmail=array("gibbonGroupID"=>$t);
+										$sqlEmail="(SELECT DISTINCT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStaff ON (gibbonStaff.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { echo $e->getMessage(); }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($students=="Y") {
+									try {
+										$dataEmail=array("gibbonGroupID"=>$t, 'gibbonSchoolYearID' => $session->get('gibbonSchoolYearID'));
+										$sqlEmail="(SELECT DISTINCT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone1='' AND phone1Type='Mobile' AND status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone2='' AND phone2Type='Mobile' AND status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone3='' AND phone3Type='Mobile' AND status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) WHERE NOT phone4='' AND phone4Type='Mobile' AND status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) { }
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+								if ($parents=="Y") {
+									try {
+										$dataEmail=array("gibbonGroupID"=>$t, 'gibbonSchoolYearID' => $session->get('gibbonSchoolYearID'));
+										$sqlEmail="(SELECT DISTINCT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE NOT phone1='' AND phone1Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)";
+										$sqlEmail.=" UNION (SELECT DISTINCT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonGroupPerson JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonPersonID=gibbonGroupPerson.gibbonPersonID) JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonFamilyChild.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonPerson ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone1='' AND phone1Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE NOT phone2='' AND phone2Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)";
+										$sqlEmail.=" UNION (SELECT DISTINCT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonGroupPerson JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonPersonID=gibbonGroupPerson.gibbonPersonID) JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonFamilyChild.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonPerson ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone2='' AND phone2Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE NOT phone3='' AND phone3Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)";
+										$sqlEmail.=" UNION (SELECT DISTINCT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonGroupPerson JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonPersonID=gibbonGroupPerson.gibbonPersonID) JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonFamilyChild.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonPerson ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone3='' AND phone3Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$sqlEmail.=" UNION (SELECT DISTINCT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson JOIN gibbonGroupPerson ON (gibbonGroupPerson.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) WHERE NOT phone4='' AND phone4Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonGroup.gibbonGroupID=:gibbonGroupID)";
+										$sqlEmail.=" UNION (SELECT DISTINCT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonGroupPerson JOIN gibbonGroup ON (gibbonGroupPerson.gibbonGroupID=gibbonGroup.gibbonGroupID) JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonPersonID=gibbonGroupPerson.gibbonPersonID) JOIN gibbonStudentEnrolment ON (gibbonStudentEnrolment.gibbonPersonID=gibbonFamilyChild.gibbonPersonID) JOIN gibbonFamily ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID) JOIN gibbonPerson ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) WHERE NOT phone4='' AND phone4Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full' AND gibbonStudentEnrolment.gibbonSchoolYearID=:gibbonSchoolYearID AND gibbonGroup.gibbonGroupID=:gibbonGroupID)" ;
+										$resultEmail=$connection2->prepare($sqlEmail);
+										$resultEmail->execute($dataEmail);
+									}
+									catch(PDOException $e) {}
+									while ($rowEmail=$resultEmail->fetch()) {
+										$countryCodeTemp = $countryCode;
+										if ($rowEmail["countryCode"]=="")
+											$countryCodeTemp = $rowEmail["countryCode"];
+										$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Group', $t, 'Whatsapp', $rowEmail["phone"]);
+									}
+								}
+							}
 						}
 					}
 				}
@@ -1938,6 +2739,24 @@ else {
 									$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Individuals', $t, 'SMS', $countryCodeTemp.$rowEmail["phone"]);
 								}
 							}
+							if ($whatsapp=="Y" AND $countryCode!="") {
+								try {
+									$dataEmail=array("gibbonPersonID"=>$t);
+									$sqlEmail="(SELECT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone1='' AND phone1Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									$sqlEmail.=" UNION (SELECT phone2 AS phone, phone2CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone2='' AND phone2Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									$sqlEmail.=" UNION (SELECT phone3 AS phone, phone3CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone3='' AND phone3Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									$sqlEmail.=" UNION (SELECT phone4 AS phone, phone4CountryCode AS countryCode, gibbonPerson.gibbonPersonID FROM gibbonPerson WHERE NOT phone4='' AND phone4Type='Mobile' AND gibbonPersonID=:gibbonPersonID AND status='Full')" ;
+									$resultEmail=$connection2->prepare($sqlEmail);
+									$resultEmail->execute($dataEmail);
+								}
+								catch(PDOException $e) { }
+								while ($rowEmail=$resultEmail->fetch()) {
+									$countryCodeTemp = $countryCode;
+									if ($rowEmail["countryCode"]=="")
+										$countryCodeTemp = $rowEmail["countryCode"];
+									$report = reportAdd($report, $emailReceipt, $rowEmail['gibbonPersonID'], 'Individuals', $t, 'Whatsapp', $rowEmail["phone"]);
+								}
+							}
 						}
 					}
 				}
@@ -1983,6 +2802,33 @@ else {
 
 					//Set log
 					$logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), 'SMS Send Status', array('Status' => $smsStatus, 'Result' => count($result), 'Recipients' => $recipients));
+				}
+			}
+
+            if ($whatsapp=="Y") {
+				if ($countryCode=="") {
+					$partialFail = true;
+				} else {
+                    $recipients = array_filter(array_reduce($report, function ($phoneNumbers, $reportEntry) {
+                        if ($reportEntry[3] == 'Whatsapp') $phoneNumbers[] = $reportEntry[4];
+                        return $phoneNumbers;
+                    }, []));
+
+                    $whatsapp = $container->get(Whatsapp::class);
+
+                    $result = $whatsapp
+						->from($session->get('email'))
+                        ->content($body)
+                        ->send($recipients);
+
+                    $whatsappCount = count($recipients);
+                    $whatsappBatchCount = count($result);
+
+                    $whatsappStatus = $result ? 'OK' : 'Not OK';
+                    $partialFail &= !empty($result);
+
+					//Set log
+					$logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), 'whatsapp Send Status', array('Status' => $whatsappStatus, 'Result' => count($result), 'Recipients' => $recipients));
 				}
 			}
 

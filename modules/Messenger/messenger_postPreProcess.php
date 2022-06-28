@@ -40,6 +40,7 @@ if (isActionAccessible($guid, $connection2, "/modules/Messenger/messenger_post.p
     $data = [
         'gibbonSchoolYearID'=> $gibbon->session->get('gibbonSchoolYearID'),
         'email'             => $_POST['email'] ?? 'N',
+        'whatsapp'          => $_POST['whatsapp'] ?? 'N',
         'messageWall'       => $_POST['messageWall'] ?? 'N',
         'messageWallPin'    => $_POST['messageWallPin'] ?? 'N',
         'messageWall_date1' => !empty($_POST['date1']) ? Format::dateConvert($_POST['date1']) : null,
@@ -80,7 +81,7 @@ if (isActionAccessible($guid, $connection2, "/modules/Messenger/messenger_post.p
     );
 
     $session->set('pageLoads', null);
-    $notification = $data['email'] == 'Y' || $data['sms'] == 'Y' ? 'Y' : 'N';
+    $notification = ( $data['email'] == 'Y' || $data['sms'] == 'Y' ) || $data['whatsapp'] == 'Y' ? 'Y' : 'N';
 
     $URL.="&addReturn=success0&notification={$notification}";
     header("Location: {$URL}") ;

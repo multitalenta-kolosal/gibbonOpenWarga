@@ -18,7 +18,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 use Gibbon\Domain\System\SettingGateway;
+use Gibbon\Domain\System\LogGateway;
 use Gibbon\Services\Format;
+use Gibbon\Contracts\Comms\Whatsapp;
 use Gibbon\Module\Attendance\AttendanceView;
 use Gibbon\Domain\Attendance\AttendanceLogPersonGateway;
 
@@ -145,6 +147,61 @@ if (isActionAccessible($guid, $connection2, '/modules/Attendance/attendance_take
                                 'date'                   => $currentDate,
                                 'timestampTaken'         => date('Y-m-d H:i:s'),
                             ];
+
+                            $logGateway = $container->get(LogGateway::class);
+
+                            if($_POST['notify_wa'] == "Y"){
+
+                                if($data['direction'] == "Out"){
+
+                                    $whatsapp = $container->get(Whatsapp::class);
+                                    
+                                    try {
+										$dataWhatsapp=array('studentID' => $data['gibbonPersonID']);
+										$sqlWhatsapp="(SELECT *
+                                        FROM 
+                                        (
+                                            SELECT DISTINCT phone1 AS phone, phone1CountryCode AS countryCode, gibbonPerson.gibbonPersonID as parentID, gibbonFamily.gibbonFamilyID as family FROM gibbonPerson
+                                            JOIN gibbonFamilyAdult ON (gibbonFamilyAdult.gibbonPersonID=gibbonPerson.gibbonPersonID) 
+                                            JOIN gibbonFamily ON (gibbonFamilyAdult.gibbonFamilyID=gibbonFamily.gibbonFamilyID)
+                                            WHERE NOT phone1='' AND phone1Type='Mobile' AND contactSMS='Y' AND gibbonPerson.status='Full'
+                                        ) q1
+                                        JOIN (
+                                            SELECT DISTINCT gibbonPerson.gibbonPersonID as studentID, gibbonPerson.officialName as studentName, gibbonFamily.gibbonFamilyID as family FROM gibbonPerson
+                                            JOIN gibbonFamilyChild ON (gibbonFamilyChild.gibbonPersonID=gibbonPerson.gibbonPersonID) 
+                                            JOIN gibbonFamily ON (gibbonFamilyChild.gibbonFamilyID=gibbonFamily.gibbonFamilyID)
+                                        ) q2
+                                        ON q1.family = q2.family
+                                        WHERE studentID = :studentID)";
+										$resultWhatsapp=$connection2->prepare($sqlWhatsapp);
+										$resultWhatsapp->execute($dataWhatsapp);
+									}
+									catch(PDOException $e) {}
+
+									while ($rowWhatsapp=$resultWhatsapp->fetch()) {
+                                        $recipients = [];
+										$countryCodeTemp = "";
+										
+                                        if ($rowWhatsapp["countryCode"]=="")
+											$countryCodeTemp = $rowWhatsapp["countryCode"];
+
+                                        $recipients[] = $rowWhatsapp['phone'];
+
+                                        $result = $whatsapp
+                                        ->from($session->get('email'))
+                                        ->content(composeAttendanceMessage($data, $rowWhatsapp))
+                                        ->send($recipients);
+
+                                        $whatsappCount = count($recipients);
+
+                                        $whatsappStatus = $result ? 'OK' : 'Not OK';
+                                        $partialFail &= !empty($result);
+
+                                        //Set log
+                                        $logGateway->addLog($session->get('gibbonSchoolYearIDCurrent'), getModuleID($connection2, $_POST["address"]), $session->get('gibbonPersonID'), 'whatsapp Send Status', array('Status' => $whatsappStatus, 'Result' => count($result), 'Recipients' => $recipients));
+									}
+                                }
+                            }
 
                             if (!$existing) {
                                 // If no records then create one

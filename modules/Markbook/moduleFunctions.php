@@ -324,3 +324,19 @@ function renderStudentSubmission($student, $submission, $markbookColumn)
 
     return $output;
 }
+
+function composeGradeNotificationMessage($data, $rowWhatsapp){
+
+return '
+*NOTIFIKASI PENILAIAN*
+
+_*'.$rowWhatsapp['studentName'].'*_
+
+Mata Pelajaran: *'.$data['courseName'].'*
+Jenis Nilai: *'.$data['columnName'].'*
+
+NILAI: *'.$data['attainment'].'*
+
+_Pesan ini dikirim secara otomatis, silakan menghubungi pihak yang bersangkutan untuk info lebih lanjut_
+';
+}

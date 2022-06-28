@@ -36,6 +36,8 @@ if (isActionAccessible($guid, $connection2, '/modules/System Admin/thirdPartySet
 
     $settingsToUpdate = [
         'System' => [
+            'enableWhatsapp' => 'required',
+            'whatsappApiKey' => '',
             'enablePayments' => 'required',
             'paymentGateway' => '',
             'paymentAPIUsername' => 'skip-hidden',

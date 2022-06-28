@@ -168,6 +168,22 @@ if (isActionAccessible($guid, $connection2, '/modules/System Admin/thirdPartySet
             $col->addButton(__('Go'), 'testPayment()')->addClass('-ml-px w-24');
     }
 
+    // WHATSAPP RAPIWHA
+    $form->addRow()->addHeading('Whatsapp Gateway', __('Whatsapp Rapiwha Gateway'))->append(__('Handle whatsapp message sending using rapiwha service'));
+
+    $setting = $settingGateway->getSettingByScope('System', 'enableWhatsapp', true);
+    $row = $form->addRow();
+        $row->addLabel($setting['name'], __($setting['nameDisplay']))->description(__($setting['description']));
+        $row->addYesNo($setting['name'])->selected($setting['value'])->required();
+
+    $form->toggleVisibilityByClass('whatsappApiKey')->onSelect($setting['name'])->when('Y');
+
+    $setting = $settingGateway->getSettingByScope('System', 'whatsappApiKey', true);
+    $row = $form->addRow()->addClass('whatsappApiKey');
+        $row->addLabel($setting['name'], __($setting['nameDisplay']))->description(__($setting['description']));
+        $row->addTextField($setting['name'])->setValue($setting['value'])->required();
+    //End Whatsapp
+
     // SMS
     $form->addRow()->addHeading('SMS Settings', __('SMS Settings'))->append(__('Gibbon can use a number of different gateways to send out SMS messages. These are paid services, not affiliated with Gibbon, and you must create your own account with them before being able to send out SMSs using the Messenger module.'));
 

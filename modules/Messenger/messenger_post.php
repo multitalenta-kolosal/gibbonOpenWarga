@@ -19,6 +19,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 use Gibbon\Forms\Form;
 use Gibbon\Contracts\Comms\SMS;
+use Gibbon\Contracts\Comms\Whatsapp;
 use Gibbon\Services\Format;
 use Gibbon\Domain\System\SettingGateway;
 use Gibbon\Domain\User\RoleGateway;
@@ -77,7 +78,8 @@ else {
 
         //DELIVERY MODE
         $form->addRow()->addHeading('Delivery Mode', __('Delivery Mode'));
-
+        
+        $deliverByWhatsapp = true;
         $deliverByEmail = isActionAccessible($guid, $connection2, "/modules/Messenger/messenger_post.php", "New Message_byEmail");
         $deliverByWall = isActionAccessible($guid, $connection2, "/modules/Messenger/messenger_post.php", "New Message_byMessageWall");
         $deliverBySMS = isActionAccessible($guid, $connection2, "/modules/Messenger/messenger_post.php", "New Message_bySMS");
@@ -137,6 +139,37 @@ else {
                 $col->addDate('date3');
         }
 
+        //Delivery by Whatsapp
+        if (true) { // temporary only until action for whatsapp is needed
+            $whatsappApiKey = $settingGateway->getSettingByScope("System", "whatsappApiKey" ) ;
+
+            if (empty($whatsappApiKey)) {
+                $row = $form->addRow()->addClass('whatsapp');
+                    $row->addLabel('whatsapp', __('whatsapp'))->description(__('Deliver this message to user\'s whatsapp?'));
+                    $row->addAlert(sprintf(__('Whatsapp NOT CONFIGURED. Please contact %1$s for help.'), "<a href='mailto:" . $session->get('organisationAdministratorEmail') . "'>" . $session->get('organisationAdministratorName') . "</a>"), 'message');
+            }
+            else {
+                $row = $form->addRow();
+                    $row->addLabel('whatsapp', __('whatsapp'))->description(__('Deliver this message to user\'s whatsapp?'));
+                    $row->addYesNoRadio('whatsapp')->checked('N')->required();
+
+                $form->toggleVisibilityByClass('whatsapp')->onRadio('whatsapp')->when('Y');
+
+                $creditString = CallAPI("GET", "http://panel.rapiwha.com/get_credit.php", ["apikey" => $whatsappApiKey]);
+                $creditObj = json_decode($creditString);
+
+                $whatsappAlert = __('Pesan whatsapp akan menggunakan biaya sebesar 0.012 usd per pesan, pastikan menggunakan dengan bijak. Mungkin tidak semua format dari pesan (terutama gambar) dapat dengan baik terkirim ke nomor whatsapp tujuan');
+
+                $whatsapp = $container->get(Whatsapp::class);
+
+                $form->addHiddenValue('whatsappApiKey', $whatsappApiKey);
+
+                $form->addRow()->addAlert($whatsappAlert, 'warning')->addClass('whatsapp')
+                    ->append('<br/><span title="credits">'.__('Saldo:').' '.$creditObj->credit.' USD</span>');
+            
+            }
+        }
+        
         //Delivery by SMS
         if ($deliverBySMS) {
             $smsGateway = $settingGateway->getSettingByScope('Messenger', 'smsGateway');
