@@ -126,7 +126,7 @@ class FormGroupTable extends DataTable
         $this->addColumn('name')
             ->setClass('text-xs font-bold mt-1')
             ->format(function ($person) use ($canViewStudents) {
-                $name = Format::name($person['title'], $person['preferredName'], $person['surname'], 'Student', false, true);
+                $name = Format::name($person['title'], $person['surname'], $person['preferredName'], 'Student', false, true);
                 $url =  Url::fromModuleRoute('Students', 'student_view_details')->withQueryParam('gibbonPersonID', $person['gibbonPersonID']);
 
                 return $canViewStudents
