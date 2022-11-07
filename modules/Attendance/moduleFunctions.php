@@ -286,15 +286,31 @@ $formattedDate = date('d-M-Y' ,strtotime($data['date']));
 return '
 *PERHATIAN*
 
+Selamat '.composeTimeGreetingsID().' kami dari '.$session->get('organisationName').' menginformasikan bahwa siswa dengan nama 
+
 _*'.$rowWhatsapp['studentName'].'*_
 
-Tercatat *tidak mengikuti* kegiatan belajar mengajar
 pada tanggal: '.$formattedDate.'
-dengan detail sebagai berikut:
-
-Alasan: '.$data['reason'].'
-Keterangan: '.$data['comment'].'
+Keterangan: '.$data['reason'].'. '.$data['comment'].'
 
 _Pesan ini dikirim secara otomatis, silakan menghubungi pihak yang bersangkutan untuk info lebih lanjut_
 ';
+}
+
+function composeTimeGreetingsID()
+{
+    $now = date('H');
+    $greetings = "pagi/siang/sore";
+
+    if($now<11){
+        $greetings = "pagi";
+    }else if($now<15){
+        $greetings = "siang";
+    }else if($now<19){
+        $greetings = "sore";
+    }else {
+        $greetings = "malam";
+    }
+    
+    return $greetings;
 }
