@@ -279,19 +279,19 @@ function getColourArray()
     return $return;
 }
 
-function composeAttendanceMessage($data, $rowWhatsapp, $orgName){
+function composeAttendanceMessage($data, $rowWhatsapp){
 
 $formattedDate = date('d-M-Y' ,strtotime($data['date']));
 
 return '
 *PERHATIAN*
 
-Selamat '.composeTimeGreetingsID().'. kami dari '.$orgName.' menginformasikan keterangan kehadiran siswa/siswi dengan nama: 
+Selamat '.composeTimeGreetingsID().' kami dari '.$session->get('organisationName').' menginformasikan bahwa siswa dengan nama 
 
 _*'.$rowWhatsapp['studentName'].'*_
 
-Pada tanggal: '.$formattedDate.'
-Dengan Keterangan: '.$data['reason'].'. '.$data['comment'].'
+pada tanggal: '.$formattedDate.'
+Keterangan: '.$data['reason'].'. '.$data['comment'].'
 
 _Pesan ini dikirim secara otomatis, silakan menghubungi pihak yang bersangkutan untuk info lebih lanjut_
 ';
