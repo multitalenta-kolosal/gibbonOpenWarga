@@ -283,6 +283,7 @@ function composeAttendanceMessage($data, $rowWhatsapp){
 
 $formattedDate = date('d-M-Y' ,strtotime($data['date']));
 
+
 return '
 *PERHATIAN*
 
