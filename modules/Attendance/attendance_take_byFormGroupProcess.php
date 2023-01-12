@@ -189,7 +189,7 @@ if (isActionAccessible($guid, $connection2, '/modules/Attendance/attendance_take
 
                                         $result = $whatsapp
                                         ->from($session->get('email'))
-                                        ->content(composeAttendanceMessage($data, $rowWhatsapp))
+                                        ->content(composeAttendanceMessage($data, $rowWhatsapp,$session->get('organisationName')))
                                         ->send($recipients);
 
                                         $whatsappCount = count($recipients);
